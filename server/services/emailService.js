@@ -194,8 +194,35 @@ const sendComplaintResolvedEmail = async (complaint) => {
   }
 };
 
+const sendVerificationOTP = async (email, otp) => {
+  try {
+    await transporter.sendMail({
+      from: `"CampusFix" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "CampusFix Email Verification OTP",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Verify Your CampusFix Account</h2>
+          <p>Your verification OTP is:</p>
+
+          <h1 style="letter-spacing: 8px;">${otp}</h1>
+
+          <p>This OTP is valid for 10 minutes.</p>
+          <p>If you did not request this, you can ignore this email.</p>
+        </div>
+      `,
+    });
+
+    console.log("Verification OTP sent successfully");
+  } catch (error) {
+    console.log("OTP email failed:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   sendComplaintNotification,
   sendTechnicianAssignmentEmail,
   sendComplaintResolvedEmail,
+  sendVerificationOTP,
 };

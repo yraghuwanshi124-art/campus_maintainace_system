@@ -7,6 +7,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import TechnicianDashboard from "./pages/TechnicianDashboard";
 import ComplaintForm from "./pages/ComplaintForm";
 import MyComplaints from "./pages/MyComplaints";
+import Register from "./pages/Register";
+import VerifyOTP from "./pages/VerifyOTP";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -17,6 +19,8 @@ function App() {
 
         {/* Login */}
         <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} />
 
         {/* Student Dashboard */}
         <Route

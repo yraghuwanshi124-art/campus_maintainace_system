@@ -38,6 +38,7 @@ function Login() {
         navigate("/technician");
       }
     } catch (error) {
+
       setMessage(
         error.response?.data?.message || "Login failed"
       );
@@ -67,13 +68,13 @@ function Login() {
             {/* Top */}
             <div>
 
-<div className="mb-6">
-  <img
-    src="https://www.medicaps.ac.in/public/frontend/images/medicaps-logo-fin.webp"
-    alt="Medi-Caps University"
-    className="h-15 w-70"
-  />
-</div>
+              <div className="mb-6">
+                <img
+                  src="https://www.medicaps.ac.in/public/frontend/images/medicaps-logo-fin.webp"
+                  alt="Medi-Caps University"
+                  className="h-15 w-70"
+                />
+              </div>
 
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-200">
                 Medi-Caps University
@@ -202,15 +203,27 @@ function Login() {
                 </button>
 
               </form>
+              <div className="mt-6 text-center">
+                <p className="text-sm text-slate-500">
+                  Don't have an account?
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="mt-1 font-semibold text-indigo-600 hover:text-indigo-700"
+                >
+                  Create an account
+                </button>
+              </div>
 
               {/* Message */}
               {message && (
                 <div
-                  className={`mt-5 rounded-xl px-4 py-3 text-center text-lg font-medium ${
-                    message === "Login successful!"
+                  className={`mt-5 rounded-xl px-4 py-3 text-center text-lg font-medium ${message === "Login successful!"
                       ? "bg-emerald-50 text-emerald-700"
                       : "bg-red-50 text-red-700"
-                  }`}
+                    }`}
                 >
                   {message}
                 </div>

@@ -57,7 +57,7 @@ function MyComplaints() {
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Failed to delete complaint"
+        "Failed to delete complaint"
       );
     }
   };
@@ -340,7 +340,63 @@ function MyComplaints() {
                   </div>
 
                 </div>
+                {/* ================= STUDENT INFORMATION ================= */}
+                <div className="mx-5 mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 sm:mx-6">
 
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-lg">
+                      👨‍🎓
+                    </div>
+
+                    <div>
+                      <p className="font-bold text-slate-800">
+                        Student Information
+                      </p>
+
+                      <p className="text-xs text-slate-500">
+                        Complaint submitted by your account
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3">
+
+                    {/* Name */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Name
+                      </p>
+
+                      <p className="mt-2 truncate font-bold text-slate-700">
+                        {complaint.user?.name || "Unknown"}
+                      </p>
+                    </div>
+
+                    {/* Email */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Email
+                      </p>
+
+                      <p className="mt-2 truncate font-semibold text-slate-600">
+                        {complaint.user?.email || "No email"}
+                      </p>
+                    </div>
+
+                    {/* Class / Section */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Class / Section
+                      </p>
+
+                      <p className="mt-2 font-bold text-indigo-600">
+                        🎓 {complaint.user?.classSection || "No class"}
+                      </p>
+                    </div>
+
+                  </div>
+
+                </div>
 
                 {/* ================= DETAILS ================= */}
                 <div className="grid gap-5 p-5 sm:p-6 md:grid-cols-3">

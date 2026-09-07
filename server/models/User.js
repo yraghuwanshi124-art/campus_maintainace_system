@@ -16,16 +16,37 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
-password: {
-  type: String,
-  required: true,
-  select: false,
-},
+    password: {
+      type: String,
+      required: true,
+      select: false,
+    },
 
     role: {
       type: String,
       enum: ["student", "admin", "technician"],
       default: "student",
+    },
+
+    classSection: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    verificationOTP: {
+      type: String,
+      select: false,
+    },
+
+    verificationOTPExpires: {
+      type: Date,
+      select: false,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   {

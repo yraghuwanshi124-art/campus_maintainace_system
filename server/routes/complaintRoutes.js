@@ -42,12 +42,7 @@ router.patch(
   updateComplaintStatus
 );
 
-router.patch(
-  "/:id/completion-photo",
-  protect,
-  allowRoles("technician"),
-  uploadCompletionPhoto
-);
+
 
 router.patch(
   "/:id/completion-photo",

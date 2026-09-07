@@ -49,9 +49,11 @@ const createComplaint = async (req, res) => {
 // Get My Complaints
 const getMyComplaints = async (req, res) => {
   try {
-    const complaints = await Complaint.find({
-      user: req.user.userId,
-    }).sort({ createdAt: -1 });
+const complaints = await Complaint.find({
+  user: req.user.userId,
+})
+  .populate("user", "name email classSection")
+  .sort({ createdAt: -1 });
 
     res.json({
       complaints,
@@ -68,7 +70,7 @@ const getMyComplaints = async (req, res) => {
 const getAllComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find()
-      .populate("user", "name email")
+      .populate("user", "name email classSection")
       .sort({ createdAt: -1 });
 
     res.json({
@@ -88,7 +90,7 @@ const getAssignedComplaints = async (req, res) => {
     const complaints = await Complaint.find({
       technician: req.user.userId,
     })
-      .populate("user", "name email")
+      .populate("user", "name email classSection")
       .sort({ createdAt: -1 });
 
     res.json({
@@ -133,26 +135,22 @@ const updateComplaintStatus = async (req, res) => {
       }
     );
 
-if (!complaint) {
-  return res.status(404).json({
-    message: "Complaint not found",
-  });
-}
+    if (!complaint) {
+      return res.status(404).json({
+        message: "Complaint not found",
+      });
+    }
 
-// Send email to admin when complaint is resolved
-if (status === "Resolved") {
-  await sendComplaintResolvedEmail(complaint);
-}
-
-res.json({
-  message: "Complaint status updated",
-  complaint,
-});
+    // Send email to admin when complaint is resolved
+    if (status === "Resolved") {
+      await sendComplaintResolvedEmail(complaint);
+    }
 
     res.json({
       message: "Complaint status updated",
       complaint,
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Failed to update complaint status",

@@ -27,14 +27,16 @@ const complaintSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
     image: {
-  type: String,
-  default: "",
-},
-completionImage: {
-  type: String,
-  default: "",
-},
+      type: String,
+      default: "",
+    },
+
+    completionImage: {
+      type: String,
+      default: "",
+    },
 
     priority: {
       type: String,
@@ -50,7 +52,7 @@ completionImage: {
 
     technician: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Technician",
+      ref: "User",
       default: null,
     },
   },

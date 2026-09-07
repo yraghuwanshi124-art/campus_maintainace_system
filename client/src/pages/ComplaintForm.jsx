@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+const user = JSON.parse(localStorage.getItem("user"));
 
 function ComplaintForm() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ function ComplaintForm() {
 
   const [image, setImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const handleChange = (e) => {
     setFormData({
@@ -88,8 +90,8 @@ function ComplaintForm() {
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to submit complaint"
+        error.message ||
+        "Failed to submit complaint"
       );
     } finally {
       setSubmitting(false);
@@ -181,7 +183,55 @@ function ComplaintForm() {
             onSubmit={handleSubmit}
             className="space-y-7 p-6 sm:p-8"
           >
+            {/* Student Information */}
+            <div className="mb-7 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-lg">
+                  👤
+                </div>
 
+                <div>
+                  <h3 className="font-bold text-slate-800">
+                    Student Information
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Details from your account
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                {/* Name */}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-slate-600">
+                    Name
+                  </label>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                    {user?.name || "N/A"}
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-slate-600">
+                    Email
+                  </label>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                    {user?.email || "N/A"}
+                  </div>
+                </div>
+
+                {/* Class / Section */}
+                <div>
+                  <label className="mb-1 block text-sm font-semibold text-slate-600">
+                    Class / Section
+                  </label>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                    {user?.classSection || "N/A"}
+                  </div>
+                </div>
+              </div>
+            </div>
             {/* ================= LOCATION ================= */}
             <div>
 

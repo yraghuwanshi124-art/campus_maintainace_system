@@ -75,17 +75,17 @@ function AdminDashboard() {
         prevComplaints.map((complaint) =>
           complaint._id === complaintId
             ? {
-                ...complaint,
-                technician: technicianId,
-                status: "Assigned",
-              }
+              ...complaint,
+              technician: technicianId,
+              status: "Assigned",
+            }
             : complaint
         )
       );
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Failed to assign complaint"
+        "Failed to assign complaint"
       );
     }
   };
@@ -120,7 +120,7 @@ function AdminDashboard() {
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Failed to delete complaint"
+        "Failed to delete complaint"
       );
     }
   };
@@ -185,6 +185,7 @@ function AdminDashboard() {
       complaint.description?.toLowerCase().includes(search) ||
       complaint.user?.name?.toLowerCase().includes(search) ||
       complaint.user?.email?.toLowerCase().includes(search);
+      complaint.user?.classSection?.toLowerCase().includes(search);
 
     const matchesStatus =
       statusFilter === "All" ||
@@ -495,11 +496,10 @@ function AdminDashboard() {
                   <button
                     key={filter.name}
                     onClick={() => setStatusFilter(filter.name)}
-                    className={`rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-                      statusFilter === filter.name
+                    className={`rounded-xl px-4 py-2.5 text-xs font-bold transition ${statusFilter === filter.name
                         ? "bg-indigo-600 text-white shadow-md"
                         : "border border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
-                    }`}
+                      }`}
                   >
                     {filter.icon} {filter.name}
                   </button>
@@ -563,15 +563,14 @@ function AdminDashboard() {
 
                 {/* TOP STATUS LINE */}
                 <div
-                  className={`h-1.5 ${
-                    complaint.status === "Resolved"
+                  className={`h-1.5 ${complaint.status === "Resolved"
                       ? "bg-emerald-500"
                       : complaint.status === "In Progress"
-                      ? "bg-purple-500"
-                      : complaint.status === "Assigned"
-                      ? "bg-orange-500"
-                      : "bg-blue-500"
-                  }`}
+                        ? "bg-purple-500"
+                        : complaint.status === "Assigned"
+                          ? "bg-orange-500"
+                          : "bg-blue-500"
+                    }`}
                 />
 
 
@@ -584,15 +583,14 @@ function AdminDashboard() {
                     <div className="flex gap-4">
 
                       <div
-                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl ${
-                          complaint.status === "Resolved"
+                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl ${complaint.status === "Resolved"
                             ? "bg-emerald-50"
                             : complaint.status === "In Progress"
-                            ? "bg-purple-50"
-                            : complaint.status === "Assigned"
-                            ? "bg-orange-50"
-                            : "bg-indigo-50"
-                        }`}
+                              ? "bg-purple-50"
+                              : complaint.status === "Assigned"
+                                ? "bg-orange-50"
+                                : "bg-indigo-50"
+                          }`}
                       >
                         🛠️
                       </div>
@@ -692,8 +690,12 @@ function AdminDashboard() {
                         {complaint.user?.name || "Unknown"}
                       </p>
 
-                      <p className="mt-0.5 truncate text-s text-slate-500 font-semibold ">
+                      <p className="mt-1 truncate text-sm text-slate-500 font-semibold">
                         {complaint.user?.email || "No email"}
+                      </p>
+
+                      <p className="mt-1 text-sm font-bold text-indigo-600">
+                        🎓 {complaint.user?.classSection || "No class"}
                       </p>
 
                     </div>
@@ -718,8 +720,8 @@ function AdminDashboard() {
                         {complaint.status === "Resolved"
                           ? "Task completed"
                           : complaint.technician
-                          ? "Currently assigned"
-                          : "Waiting for assignment"}
+                            ? "Currently assigned"
+                            : "Waiting for assignment"}
                       </p>
 
                     </div>

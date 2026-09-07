@@ -164,7 +164,7 @@ function StudentDashboard() {
             </p>
 
             <h1 className="mt-3 text-3xl font-bold sm:text-4xl">
-              Good Day, {user?.name || "Student"} 👋
+              Welcome Back, {user?.name || "Student"} 👋
             </h1>
 
             <p className="mt-4 max-w-2xl text-indigo-100 leading-7">

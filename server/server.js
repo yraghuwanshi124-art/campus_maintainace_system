@@ -9,7 +9,14 @@ const technicianRoutes = require("./routes/technicianRoutes");
 
 const app = express();
 
-app.use(cors());
+const corsOptions = {
+  origin: [
+    "http://localhost:5173",
+    "https://campus-maintainace-system.vercel.app"
+  ]
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -31,7 +38,7 @@ mongoose
 
 // Local development only
 if (require.main === module) {
-  const PORT = process.env.PORT || 5000;
+  const PORT = 5000;
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

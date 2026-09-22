@@ -76,73 +76,73 @@ function StudentDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
 
-{/* ================= NAVBAR ================= */}
-<nav className="border-b border-indigo-100 bg-indigo-50 shadow-sm">
-  <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      {/* ================= NAVBAR ================= */}
+      <nav className="border-b border-indigo-100 bg-indigo-50 shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
-    {/* LEFT - BRANDING */}
-    <div className="flex items-center gap-5">
+          {/* LEFT - BRANDING */}
+          <div className="flex items-center gap-5">
 
-      <div className="rounded-xl bg-white px-3 py-1.5 shadow-sm">
-        <img
-          src="https://www.medicaps.ac.in/public/frontend/images/medicaps-logo-fin.webp"
-          alt="Medi-Caps University"
-          className="h-11 w-auto object-contain"
-        />
-      </div>
+            <div className="rounded-xl bg-white px-3 py-1.5 shadow-sm">
+              <img
+                src="https://www.medicaps.ac.in/public/frontend/images/medicaps-logo-fin.webp"
+                alt="Medi-Caps University"
+                className="h-11 w-auto object-contain"
+              />
+            </div>
 
-      <div className="hidden border-l-2 border-indigo-200 pl-5 sm:block">
+            <div className="hidden border-l-2 border-indigo-200 pl-5 sm:block">
 
-        <p className="text-xl font-extrabold tracking-tight text-indigo-700">
-          CampusFix
-        </p>
+              <p className="text-xl font-extrabold tracking-tight text-indigo-700">
+                CampusFix
+              </p>
 
-        <p className="mt-1 text-sm font-medium text-slate-600">
-          Campus Maintenance Management System
-        </p>
+              <p className="mt-1 text-sm font-medium text-slate-600">
+                Campus Maintenance Management System
+              </p>
 
-      </div>
+            </div>
 
-    </div>
-
-
-    {/* RIGHT - USER */}
-    <div className="flex items-center gap-4">
-
-      {/* User Info */}
-      <div className="hidden text-right sm:block">
-
-        <p className="text-base font-bold text-slate-800">
-          {user?.name || "Student"}
-        </p>
-
-        <p className="mt-0.5 max-w-[230px] truncate text-sm text-slate-500">
-          {user?.email || "No email"}
-        </p>
-
-      </div>
+          </div>
 
 
-      {/* Avatar */}
-      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-600 text-base font-bold text-white shadow-sm">
-        {user?.name?.charAt(0)?.toUpperCase() || "S"}
-      </div>
+          {/* RIGHT - USER */}
+          <div className="flex items-center gap-4">
+
+            {/* User Info */}
+            <div className="hidden text-right sm:block">
+
+              <p className="text-base font-bold text-slate-800">
+                {user?.name || "Student"}
+              </p>
+
+              <p className="mt-0.5 max-w-[230px] truncate text-sm text-slate-500">
+                {user?.email || "No email"}
+              </p>
+
+            </div>
 
 
-      {/* Logout */}
-<button
-  onClick={() => setShowLogout(true)}
-  className="rounded-xl border border-indigo-200 bg-white px-5 py-2.5 text-base font-semibold text-slate-700 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
->
-  Logout
-</button>
+            {/* Avatar */}
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-600 text-base font-bold text-white shadow-sm">
+              {user?.name?.charAt(0)?.toUpperCase() || "S"}
+            </div>
 
-    </div>
 
-  </div>
-</nav>
+            {/* Logout */}
+            <button
+              onClick={() => setShowLogout(true)}
+              className="rounded-xl border border-indigo-200 bg-white px-5 py-2.5 text-base font-semibold text-slate-700 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+            >
+              Logout
+            </button>
 
-    
+          </div>
+
+        </div>
+      </nav>
+
+
 
 
       {/* ================= MAIN ================= */}
@@ -409,11 +409,14 @@ function StudentDashboard() {
 
             <div className="space-y-4">
 
-              {complaints.slice(0, 5).map((complaint) => (
+              {complaints.slice(0, 3).map((complaint) => (
 
                 <div
                   key={complaint._id}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-200 hover:shadow-md"
+                  onClick={() =>
+                    navigate(`/student/complaints?id=${complaint._id}`)
+                  }
+                  className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md"
                 >
 
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -564,10 +567,10 @@ function StudentDashboard() {
         </div>
 
       </footer>
-<LogoutModal
-  isOpen={showLogout}
-  onClose={() => setShowLogout(false)}
-/>
+      <LogoutModal
+        isOpen={showLogout}
+        onClose={() => setShowLogout(false)}
+      />
     </div>
   );
 }

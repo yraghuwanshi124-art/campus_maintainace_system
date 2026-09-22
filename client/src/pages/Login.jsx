@@ -38,7 +38,6 @@ function Login() {
         navigate("/technician");
       }
     } catch (error) {
-
       setMessage(
         error.response?.data?.message || "Login failed"
       );
@@ -56,7 +55,7 @@ function Login() {
           <img
             src="https://www.medicaps.ac.in/public/frontend/images/home_about-img.webp"
             alt="Medi-Caps University Campus"
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover shadow-lg"
           />
 
           {/* Overlay */}
@@ -68,7 +67,7 @@ function Login() {
             {/* Top */}
             <div>
 
-              <div className="mb-6">
+              <div className="mb-7">
                 <img
                   src="https://www.medicaps.ac.in/public/frontend/images/medicaps-logo-fin.webp"
                   alt="Medi-Caps University"
@@ -116,7 +115,6 @@ function Login() {
 
             {/* Mobile Branding */}
             <div className="mb-10 text-center lg:hidden">
-
 
               <h1 className="mt-4 text-4xl font-bold text-slate-800">
                 Medi-Caps University
@@ -177,9 +175,22 @@ function Login() {
                 {/* Password */}
                 <div>
 
-                  <label className="mb-2 block text-2xl font-semibold text-slate-700">
-                    Password
-                  </label>
+                  <div className="mb-2 flex items-center justify-between">
+
+                    <label className="block text-2xl font-semibold text-slate-700">
+                      Password
+                    </label>
+
+                    {/* Forgot Password */}
+                    <button
+                      type="button"
+                      onClick={() => navigate("/forgot-password")}
+                      className="text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
+                    >
+                      Forgot Password?
+                    </button>
+
+                  </div>
 
                   <input
                     type="password"
@@ -203,7 +214,10 @@ function Login() {
                 </button>
 
               </form>
+
+              {/* Register */}
               <div className="mt-6 text-center">
+
                 <p className="text-sm text-slate-500">
                   Don't have an account?
                 </p>
@@ -215,15 +229,17 @@ function Login() {
                 >
                   Create an account
                 </button>
+
               </div>
 
               {/* Message */}
               {message && (
                 <div
-                  className={`mt-5 rounded-xl px-4 py-3 text-center text-lg font-medium ${message === "Login successful!"
+                  className={`mt-5 rounded-xl px-4 py-3 text-center text-lg font-medium ${
+                    message === "Login successful!"
                       ? "bg-emerald-50 text-emerald-700"
                       : "bg-red-50 text-red-700"
-                    }`}
+                  }`}
                 >
                   {message}
                 </div>

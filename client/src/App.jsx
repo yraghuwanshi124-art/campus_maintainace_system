@@ -9,8 +9,14 @@ import ComplaintForm from "./pages/ComplaintForm";
 import MyComplaints from "./pages/MyComplaints";
 import Register from "./pages/Register";
 import VerifyOTP from "./pages/VerifyOTP";
-
+import AdminTechnicians from "./pages/AdminTechnicians";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminMonthlyReport from "./pages/AdminMonthlyReport";
+import AdminComplaints from "./pages/AdminComplaints";
+import AdminSettings from "./pages/AdminSettings";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 
 function App() {
   return (
@@ -74,7 +80,22 @@ function App() {
 
         {/* Unknown URL */}
         <Route path="*" element={<Login />} />
+        <Route path="/admin/technicians" element={<AdminTechnicians />} />
 
+        <Route
+          path="/admin/monthly-report"
+          element={<AdminMonthlyReport />}
+        />
+        <Route
+          path="/admin/complaints"
+          element={<AdminComplaints />}
+        />
+        <Route
+          path="/admin/settings"
+          element={<AdminSettings />}
+        />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </BrowserRouter>
   );

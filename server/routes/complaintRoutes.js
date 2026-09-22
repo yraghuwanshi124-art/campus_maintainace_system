@@ -3,6 +3,7 @@ const express = require("express");
 
 const {
   createComplaint,
+  supportComplaint,
   getMyComplaints,
   getAllComplaints,
   getAssignedComplaints,
@@ -10,6 +11,7 @@ const {
   assignComplaint,
   deleteComplaint,
   uploadCompletionPhoto,
+  submitFeedback,
 } = require("../controllers/complaintController");
 
 const protect = require("../middleware/authMiddleware");
@@ -17,10 +19,29 @@ const allowRoles = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-router.post("/", protect, createComplaint);
+// Create complaint
+router.post("/", protect, allowRoles("student"), createComplaint);
 
-router.get("/my", protect, getMyComplaints);
+// Get student's complaints
+router.get("/my", protect, allowRoles("student"), getMyComplaints);
 
+// Support an existing active complaint
+router.post(
+  "/:id/support",
+  protect,
+  allowRoles("student"),
+  supportComplaint
+);
+
+// Submit feedback
+router.post(
+  "/:id/feedback",
+  protect,
+  allowRoles("student"),
+  submitFeedback
+);
+
+// Get all complaints - Admin
 router.get(
   "/all",
   protect,
@@ -28,6 +49,7 @@ router.get(
   getAllComplaints
 );
 
+// Get assigned complaints - Technician
 router.get(
   "/assigned",
   protect,
@@ -35,6 +57,7 @@ router.get(
   getAssignedComplaints
 );
 
+// Update complaint status - Technician
 router.patch(
   "/:id/status",
   protect,
@@ -42,8 +65,7 @@ router.patch(
   updateComplaintStatus
 );
 
-
-
+// Upload completion photo - Technician
 router.patch(
   "/:id/completion-photo",
   protect,
@@ -51,6 +73,7 @@ router.patch(
   uploadCompletionPhoto
 );
 
+// Assign complaint - Admin
 router.patch(
   "/:id/assign",
   protect,
@@ -58,7 +81,7 @@ router.patch(
   assignComplaint
 );
 
-// Delete resolved complaint
+// Delete complaint
 router.delete(
   "/:id",
   protect,

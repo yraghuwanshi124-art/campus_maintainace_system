@@ -1,3 +1,4 @@
+
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
@@ -7,9 +8,12 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
 console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS exists:", !!process.env.EMAIL_PASS);
 console.log("ADMIN_EMAIL:", process.env.ADMIN_EMAIL);
+
+// ================= NEW COMPLAINT NOTIFICATION =================
 
 const sendComplaintNotification = async (complaint) => {
   try {
@@ -52,12 +56,15 @@ const sendComplaintNotification = async (complaint) => {
   }
 };
 
+// ================= TECHNICIAN ASSIGNMENT =================
+
 const sendTechnicianAssignmentEmail = async (complaint, technician) => {
   try {
     console.log("Technician email:", process.env.TECHNICIAN_EMAIL);
+
     await transporter.sendMail({
       from: `"CampusFix" <${process.env.EMAIL_USER}>`,
-to: process.env.TECHNICIAN_EMAIL,
+      to: process.env.TECHNICIAN_EMAIL,
       subject: "New Complaint Assigned - CampusFix",
 
       html: `
@@ -117,7 +124,6 @@ to: process.env.TECHNICIAN_EMAIL,
         </div>
       `,
     });
-    
 
     console.log("Technician assignment email sent successfully");
   } catch (error) {
@@ -127,6 +133,9 @@ to: process.env.TECHNICIAN_EMAIL,
     );
   }
 };
+
+// ================= COMPLAINT RESOLVED =================
+
 const sendComplaintResolvedEmail = async (complaint) => {
   try {
     await transporter.sendMail({
@@ -185,7 +194,6 @@ const sendComplaintResolvedEmail = async (complaint) => {
     });
 
     console.log("Complaint resolved email sent successfully");
-
   } catch (error) {
     console.log(
       "Resolved complaint email failed:",
@@ -194,21 +202,46 @@ const sendComplaintResolvedEmail = async (complaint) => {
   }
 };
 
+// ================= REGISTRATION VERIFICATION OTP =================
+
 const sendVerificationOTP = async (email, otp) => {
   try {
     await transporter.sendMail({
       from: `"CampusFix" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "CampusFix Email Verification OTP",
+
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Verify Your CampusFix Account</h2>
+        <div style="
+          font-family: Arial, sans-serif;
+          max-width: 600px;
+          margin: auto;
+          padding: 25px;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+        ">
+
+          <h2 style="color: #4f46e5;">
+            Verify Your CampusFix Account
+          </h2>
+
           <p>Your verification OTP is:</p>
 
-          <h1 style="letter-spacing: 8px;">${otp}</h1>
+          <h1 style="
+            letter-spacing: 8px;
+            color: #111827;
+          ">
+            ${otp}
+          </h1>
 
-          <p>This OTP is valid for 10 minutes.</p>
-          <p>If you did not request this, you can ignore this email.</p>
+          <p>
+            This OTP is valid for <strong>10 minutes</strong>.
+          </p>
+
+          <p>
+            If you did not request this, you can ignore this email.
+          </p>
+
         </div>
       `,
     });
@@ -220,9 +253,94 @@ const sendVerificationOTP = async (email, otp) => {
   }
 };
 
+// ================= PASSWORD RESET OTP =================
+
+const sendPasswordResetOTP = async (email, otp) => {
+  try {
+    await transporter.sendMail({
+      from: `"CampusFix" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "CampusFix Password Reset OTP",
+
+      html: `
+        <div style="
+          font-family: Arial, sans-serif;
+          max-width: 600px;
+          margin: auto;
+          padding: 25px;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+        ">
+
+          <h2 style="color: #4f46e5;">
+            Reset Your CampusFix Password
+          </h2>
+
+          <p>
+            We received a request to reset your CampusFix password.
+          </p>
+
+          <p>
+            Your password reset OTP is:
+          </p>
+
+          <div style="
+            margin: 20px 0;
+            padding: 15px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            text-align: center;
+          ">
+
+            <h1 style="
+              margin: 0;
+              letter-spacing: 8px;
+              color: #111827;
+            ">
+              ${otp}
+            </h1>
+
+          </div>
+
+          <p>
+            This OTP is valid for <strong>10 minutes</strong>.
+          </p>
+
+          <p style="color: #6b7280;">
+            If you did not request a password reset,
+            you can safely ignore this email.
+          </p>
+
+          <hr />
+
+          <p style="
+            color: #9ca3af;
+            font-size: 13px;
+          ">
+            This is an automated email from CampusFix.
+          </p>
+
+        </div>
+      `,
+    });
+
+    console.log("Password reset OTP sent successfully");
+  } catch (error) {
+    console.log(
+      "Password reset OTP email failed:",
+      error.message
+    );
+
+    throw error;
+  }
+};
+
+// ================= EXPORTS =================
+
 module.exports = {
   sendComplaintNotification,
   sendTechnicianAssignmentEmail,
   sendComplaintResolvedEmail,
   sendVerificationOTP,
+  sendPasswordResetOTP,
 };

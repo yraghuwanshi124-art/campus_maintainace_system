@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
@@ -16,6 +17,34 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    enrollmentNumber: {
+      type: String,
+      required: function () {
+        return this.role === "student";
+      },
+      unique: true,
+      sparse: true,
+      trim: true,
+      uppercase: true,
+    },
+
+    department: {
+      type: String,
+      required: function () {
+        return this.role === "student";
+      },
+      trim: true,
+    },
+
+    semester: {
+      type: Number,
+      required: function () {
+        return this.role === "student";
+      },
+      min: 1,
+      max: 8,
+    },
+
     password: {
       type: String,
       required: true,
@@ -28,11 +57,26 @@ const userSchema = new mongoose.Schema(
       default: "student",
     },
 
+    specialization: {
+      type: String,
+      enum: [
+        "Electrician",
+        "Carpenter",
+        "AC Technician",
+        "Computer Technician",
+        "Plumber",
+        "General",
+      ],
+      default: "General",
+    },
+
     classSection: {
       type: String,
       required: true,
       trim: true,
     },
+
+    // ================= EMAIL VERIFICATION OTP =================
 
     verificationOTP: {
       type: String,
@@ -47,6 +91,18 @@ const userSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+
+    // ================= PASSWORD RESET OTP =================
+
+    resetPasswordOTP: {
+      type: String,
+      select: false,
+    },
+
+    resetPasswordOTPExpires: {
+      type: Date,
+      select: false,
     },
   },
   {

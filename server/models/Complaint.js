@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const complaintSchema = new mongoose.Schema(
@@ -54,6 +55,39 @@ const complaintSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
+    },
+
+    // Admin assigned complaint at this time
+    assignedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Technician resolved complaint at this time
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Students who are affected by the same issue
+    // and support this complaint
+    supporters: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    feedbackRating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+
+    feedbackComment: {
+      type: String,
+      default: "",
     },
   },
   {

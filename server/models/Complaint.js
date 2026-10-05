@@ -14,9 +14,20 @@ const complaintSchema = new mongoose.Schema(
       required: true,
     },
 
+    floor: {
+      type: String,
+      default: "",
+    },
+
     room: {
       type: String,
       required: true,
+    },
+
+    mobileNumber: {
+      type: String,
+      required: true,
+      trim: true,
     },
 
     category: {
@@ -50,8 +61,18 @@ const complaintSchema = new mongoose.Schema(
       enum: ["Pending", "Assigned", "In Progress", "Resolved"],
       default: "Pending",
     },
-
+    supervisor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     technician: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    admin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
@@ -62,6 +83,12 @@ const complaintSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Supervisor assigned technician at this time
+technicianAssignedAt: {
+  type: Date,
+  default: null,
+},
 
     // Technician resolved complaint at this time
     resolvedAt: {

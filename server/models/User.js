@@ -17,6 +17,14 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    phoneNumber: {
+      type: String,
+      required: function () {
+        return this.role === "student";
+      },
+      trim: true,
+    },
+
     enrollmentNumber: {
       type: String,
       required: function () {
@@ -35,6 +43,13 @@ const userSchema = new mongoose.Schema(
       },
       trim: true,
     },
+    branch: {
+      type: String,
+      required: function () {
+        return this.role === "student";
+      },
+      trim: true,
+    },
 
     semester: {
       type: Number,
@@ -45,17 +60,38 @@ const userSchema = new mongoose.Schema(
       max: 8,
     },
 
-    password: {
+    classSection: {
       type: String,
       required: true,
+      trim: true,
+    },
+
+    // ================= PASSWORD =================
+
+    // Password is required only after
+    // email OTP verification and registration completion.
+    password: {
+      type: String,
+      required: function () {
+        return this.isVerified === true;
+      },
       select: false,
     },
 
+    // ================= ROLE =================
+
     role: {
       type: String,
-      enum: ["student", "admin", "technician"],
+      enum: ["student", "admin", "technician","supervisor"],
       default: "student",
     },
+
+    assignedBlocks: {
+      type: [String],
+      default: [],
+    },
+
+    // ================= TECHNICIAN =================
 
     specialization: {
       type: String,
@@ -70,24 +106,26 @@ const userSchema = new mongoose.Schema(
       default: "General",
     },
 
-    classSection: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    // ================= EMAIL OTP =================
 
-    // ================= EMAIL VERIFICATION OTP =================
-
-    verificationOTP: {
+    emailOTP: {
       type: String,
       select: false,
     },
 
-    verificationOTPExpires: {
+    emailOTPExpires: {
       type: Date,
       select: false,
     },
 
+    // OTP verified but password/account
+    // creation is still pending.
+    registrationEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Final account verification.
     isVerified: {
       type: Boolean,
       default: false,

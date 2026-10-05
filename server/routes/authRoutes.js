@@ -6,6 +6,7 @@ const protect = require("../middleware/authMiddleware");
 const {
   registerUser,
   verifyOTP,
+  completeRegistration,
   loginUser,
   changePassword,
   forgotPassword,
@@ -23,11 +24,15 @@ router.get("/profile", protect, (req, res) => {
   });
 });
 
-// ================= AUTHENTICATION =================
+// ================= REGISTRATION =================
 
 router.post("/register", registerUser);
 
 router.post("/verify-otp", verifyOTP);
+
+router.post("/complete-registration", completeRegistration);
+
+// ================= LOGIN =================
 
 router.post("/login", loginUser);
 

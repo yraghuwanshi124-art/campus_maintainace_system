@@ -8,6 +8,7 @@ function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
 
   const handleLogin = async (e) => {
@@ -36,6 +37,8 @@ function Login() {
         navigate("/admin");
       } else if (role === "technician") {
         navigate("/technician");
+      } else if (role === "supervisor") {
+        navigate("/supervisor/dashboard");
       }
     } catch (error) {
       setMessage(
@@ -192,16 +195,88 @@ function Login() {
 
                   </div>
 
-                  <input
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value)
-                    }
-                    required
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                  />
+                  {/* Password Input with Show/Hide */}
+                  <div className="relative">
+
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) =>
+                        setPassword(e.target.value)
+                      }
+                      required
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3.5 pr-12 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowPassword(!showPassword)
+                      }
+                      className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-indigo-600"
+                      aria-label={
+                        showPassword
+                          ? "Hide password"
+                          : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        // Eye Off
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="h-5 w-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M3 3l18 18"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M10.58 10.58a2 2 0 002.84 2.84"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9.88 4.24A10.8 10.8 0 0112 4c5.5 0 9.5 8 9.5 8a17.3 17.3 0 01-3.18 4.24"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6.61 6.61C3.95 8.48 2.5 12 2.5 12s4 8 9.5 8c1.04 0 2.02-.17 2.93-.47"
+                          />
+                        </svg>
+                      ) : (
+                        // Eye
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="h-5 w-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"
+                          />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="2.5"
+                          />
+                        </svg>
+                      )}
+                    </button>
+
+                  </div>
 
                 </div>
 
@@ -235,11 +310,10 @@ function Login() {
               {/* Message */}
               {message && (
                 <div
-                  className={`mt-5 rounded-xl px-4 py-3 text-center text-lg font-medium ${
-                    message === "Login successful!"
+                  className={`mt-5 rounded-xl px-4 py-3 text-center text-lg font-medium ${message === "Login successful!"
                       ? "bg-emerald-50 text-emerald-700"
                       : "bg-red-50 text-red-700"
-                  }`}
+                    }`}
                 >
                   {message}
                 </div>

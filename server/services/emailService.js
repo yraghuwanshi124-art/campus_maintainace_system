@@ -2,7 +2,9 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -12,7 +14,7 @@ const transporter = nodemailer.createTransport({
 console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS exists:", !!process.env.EMAIL_PASS);
 console.log("ADMIN_EMAIL:", process.env.ADMIN_EMAIL);
-
+console.log("EMAIL_PASS length:", process.env.EMAIL_PASS?.length);
 // ================= NEW COMPLAINT NOTIFICATION =================
 
 const sendComplaintNotification = async (complaint) => {
@@ -31,7 +33,9 @@ const sendComplaintNotification = async (complaint) => {
           <hr />
 
           <p><strong>Block:</strong> ${complaint.block}</p>
+          ${complaint.floor ? `<p><strong>Floor:</strong> ${complaint.floor}</p>` : ""}
           <p><strong>Room:</strong> ${complaint.room}</p>
+          ${complaint.mobileNumber ? `<p><strong>Student Contact:</strong> ${complaint.mobileNumber}</p>` : ""}
           <p><strong>Category:</strong> ${complaint.category}</p>
           <p><strong>Priority:</strong> ${complaint.priority}</p>
 
@@ -91,7 +95,9 @@ const sendTechnicianAssignmentEmail = async (complaint, technician) => {
           <hr />
 
           <p><strong>Block:</strong> ${complaint.block}</p>
+          ${complaint.floor ? `<p><strong>Floor:</strong> ${complaint.floor}</p>` : ""}
           <p><strong>Room:</strong> ${complaint.room}</p>
+          ${complaint.mobileNumber ? `<p><strong>Student Contact:</strong> ${complaint.mobileNumber}</p>` : ""}
           <p><strong>Category:</strong> ${complaint.category}</p>
           <p><strong>Priority:</strong> ${complaint.priority}</p>
 
@@ -165,6 +171,7 @@ const sendComplaintResolvedEmail = async (complaint) => {
           <hr />
 
           <p><strong>Block:</strong> ${complaint.block}</p>
+          ${complaint.floor ? `<p><strong>Floor:</strong> ${complaint.floor}</p>` : ""}
           <p><strong>Room:</strong> ${complaint.room}</p>
           <p><strong>Category:</strong> ${complaint.category}</p>
           <p><strong>Priority:</strong> ${complaint.priority}</p>

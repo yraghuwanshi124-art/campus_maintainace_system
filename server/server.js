@@ -6,6 +6,10 @@ const studentRoutes = require("./routes/studentRoutes");
 const authRoutes = require("./routes/authRoutes");
 const complaintRoutes = require("./routes/complaintRoutes");
 const technicianRoutes = require("./routes/technicianRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const supervisorRoutes = require("./routes/supervisorRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+
 
 const app = express();
 
@@ -29,6 +33,13 @@ app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/technicians", technicianRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/supervisor", supervisorRoutes);
+app.use(
+  "/api/notifications",
+  notificationRoutes
+);
+
 
 mongoose
   .connect(process.env.MONGO_URI)

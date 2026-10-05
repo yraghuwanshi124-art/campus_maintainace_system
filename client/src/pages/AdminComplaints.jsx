@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import LogoutModal from "../components/LogoutModal";
@@ -5,28 +6,13 @@ import AdminSidebar from "../components/AdminSidebar";
 
 function AdminComplaints() {
   const [complaints, setComplaints] = useState([]);
-  const [technicians, setTechnicians] = useState([]);
+  const [supervisors, setSupervisors] = useState([]);
   const [showLogout, setShowLogout] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedComplaints, setExpandedComplaints] = useState({});
-  const [selectedTechnicians, setSelectedTechnicians] = useState({});
-
-  // ================= CATEGORY → SPECIALIZATION =================
-
-  const categoryToSpecialization = {
-    Fan: "Electrician",
-    Light: "Electrician",
-    Electrical: "Electrician",
-    Projector: "Computer Technician",
-    Computer: "Computer Technician",
-    AC: "AC Technician",
-    Door: "Carpenter",
-    Furniture: "Carpenter",
-    Plumbing: "Plumber",
-    Other: "General",
-  };
+  const [selectedSupervisors, setSelectedSupervisors] = useState({});
 
   // ================= FETCH COMPLAINTS =================
 
@@ -40,7 +26,10 @@ function AdminComplaints() {
         },
       });
 
-      console.log("ADMIN COMPLAINT DATA:", response.data.complaints);
+      console.log(
+        "ADMIN COMPLAINT DATA:",
+        response.data.complaints
+      );
 
       setComplaints(response.data.complaints || []);
     } catch (error) {
@@ -51,22 +40,22 @@ function AdminComplaints() {
     }
   };
 
-  // ================= FETCH TECHNICIANS =================
+  // ================= FETCH SUPERVISORS =================
 
-  const fetchTechnicians = async () => {
+  const fetchSupervisors = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await api.get("/technicians", {
+      const response = await api.get("/supervisor/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      setTechnicians(response.data.technicians || []);
+      setSupervisors(response.data.supervisors || []);
     } catch (error) {
       console.log(
-        "Failed to fetch technicians:",
+        "Failed to fetch supervisors:",
         error.response?.data || error
       );
     }
@@ -76,7 +65,7 @@ function AdminComplaints() {
 
   useEffect(() => {
     fetchComplaints();
-    fetchTechnicians();
+    fetchSupervisors();
   }, []);
 
   // ================= TOGGLE =================
@@ -88,11 +77,14 @@ function AdminComplaints() {
     }));
   };
 
-  // ================= ASSIGN COMPLAINT =================
+  // ================= ASSIGN COMPLAINT TO SUPERVISOR =================
 
-  const assignComplaint = async (complaintId, technicianId) => {
-    if (!technicianId) {
-      alert("Please select a technician first.");
+  const assignComplaint = async (
+    complaintId,
+    supervisorId
+  ) => {
+    if (!supervisorId) {
+      alert("Please select a supervisor first.");
       return;
     }
 
@@ -102,7 +94,7 @@ function AdminComplaints() {
       const response = await api.patch(
         `/complaints/${complaintId}/assign`,
         {
-          technicianId,
+          supervisorId,
         },
         {
           headers: {
@@ -113,12 +105,20 @@ function AdminComplaints() {
 
       alert(response.data.message);
 
+      const assignedSupervisor =
+        supervisors.find(
+          (supervisor) =>
+            supervisor._id === supervisorId
+        ) || null;
+
       setComplaints((prevComplaints) =>
         prevComplaints.map((complaint) =>
           complaint._id === complaintId
             ? {
                 ...complaint,
-                technician: technicianId,
+                supervisor:
+                  assignedSupervisor || supervisorId,
+                technician: null,
                 status: "Assigned",
                 assignedAt:
                   response.data.complaint?.assignedAt ||
@@ -128,7 +128,7 @@ function AdminComplaints() {
         )
       );
 
-      setSelectedTechnicians((prev) => {
+      setSelectedSupervisors((prev) => {
         const updated = { ...prev };
         delete updated[complaintId];
         return updated;
@@ -166,11 +166,12 @@ function AdminComplaints() {
 
       setComplaints((prevComplaints) =>
         prevComplaints.filter(
-          (complaint) => complaint._id !== complaintId
+          (complaint) =>
+            complaint._id !== complaintId
         )
       );
 
-      setSelectedTechnicians((prev) => {
+      setSelectedSupervisors((prev) => {
         const updated = { ...prev };
         delete updated[complaintId];
         return updated;
@@ -237,42 +238,66 @@ function AdminComplaints() {
 
   // ================= FILTER =================
 
-  const filteredComplaints = complaints.filter((complaint) => {
-    const search = searchTerm.toLowerCase().trim();
+  const filteredComplaints = complaints.filter(
+    (complaint) => {
+      const search = searchTerm
+        .toLowerCase()
+        .trim();
 
-    const technicianName =
-      typeof complaint.technician === "object"
-        ? complaint.technician?.name || ""
-        : "";
+      const supervisorName =
+        typeof complaint.supervisor === "object"
+          ? complaint.supervisor?.name || ""
+          : supervisors.find(
+              (supervisor) =>
+                supervisor._id ===
+                complaint.supervisor
+            )?.name || "";
 
-    const matchesSearch =
-      complaint.category?.toLowerCase().includes(search) ||
-      complaint.block?.toLowerCase().includes(search) ||
-      complaint.room?.toLowerCase().includes(search) ||
-      complaint.description?.toLowerCase().includes(search) ||
-      complaint.user?.name?.toLowerCase().includes(search) ||
-      complaint.user?.email?.toLowerCase().includes(search) ||
-      complaint.user?.classSection
-        ?.toLowerCase()
-        .includes(search) ||
-      complaint.user?.enrollmentNumber
-        ?.toLowerCase()
-        .includes(search) ||
-      complaint.user?.department
-        ?.toLowerCase()
-        .includes(search) ||
-      technicianName.toLowerCase().includes(search);
+      const matchesSearch =
+        complaint.category
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.block
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.room
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.description
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.user?.name
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.user?.email
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.user?.classSection
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.user?.enrollmentNumber
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.user?.department
+          ?.toLowerCase()
+          .includes(search) ||
+        supervisorName
+          .toLowerCase()
+          .includes(search);
 
-    const matchesStatus =
-      statusFilter === "All" ||
-      complaint.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "All" ||
+        complaint.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    }
+  );
 
   // ================= SORT BY RECENT =================
 
-  const sortedComplaints = [...filteredComplaints].sort(
+  const sortedComplaints = [
+    ...filteredComplaints,
+  ].sort(
     (a, b) =>
       new Date(b.createdAt || 0) -
       new Date(a.createdAt || 0)
@@ -280,19 +305,24 @@ function AdminComplaints() {
 
   // ================= STATUS LISTS =================
 
-  const pendingComplaintList = sortedComplaints.filter(
-    (complaint) => complaint.status === "Pending"
-  );
+  const pendingComplaintList =
+    sortedComplaints.filter(
+      (complaint) =>
+        complaint.status === "Pending"
+    );
 
-  const activeComplaints = sortedComplaints.filter(
-    (complaint) =>
-      complaint.status === "Assigned" ||
-      complaint.status === "In Progress"
-  );
+  const activeComplaints =
+    sortedComplaints.filter(
+      (complaint) =>
+        complaint.status === "Assigned" ||
+        complaint.status === "In Progress"
+    );
 
-  const resolvedComplaintList = sortedComplaints.filter(
-    (complaint) => complaint.status === "Resolved"
-  );
+  const resolvedComplaintList =
+    sortedComplaints.filter(
+      (complaint) =>
+        complaint.status === "Resolved"
+    );
 
   const user = JSON.parse(
     localStorage.getItem("user")
@@ -334,7 +364,11 @@ function AdminComplaints() {
             <div className="flex items-center gap-4">
               <div className="hidden text-right sm:block">
                 <p className="text-base font-bold text-slate-800">
-                  Administrator
+                  {user?.assignedBlocks?.length
+                    ? `${user.assignedBlocks.join(
+                        ", "
+                      )} Admin`
+                    : "Administrator"}
                 </p>
 
                 <p className="mt-0.5 max-w-[230px] truncate text-sm text-slate-500">
@@ -421,8 +455,11 @@ function AdminComplaints() {
                   {[
                     { name: "All", icon: "📋" },
                     { name: "Pending", icon: "⏳" },
-                    { name: "Assigned", icon: "👨‍🔧" },
-                    { name: "In Progress", icon: "🔧" },
+                    { name: "Assigned", icon: "👨‍💼" },
+                    {
+                      name: "In Progress",
+                      icon: "🔧",
+                    },
                     { name: "Resolved", icon: "✅" },
                   ].map((filter) => (
                     <button
@@ -519,7 +556,7 @@ function AdminComplaints() {
                       </h2>
 
                       <p className="text-sm text-slate-500">
-                        Complaints waiting for technician assignment
+                        Complaints waiting for supervisor assignment
                       </p>
                     </div>
 
@@ -576,17 +613,20 @@ function AdminComplaints() {
                 const isExpanded =
                   expandedComplaints[complaint._id];
 
-                const technicianId =
-                  typeof complaint.technician === "object"
-                    ? complaint.technician?._id
-                    : complaint.technician;
+                const supervisorId =
+                  typeof complaint.supervisor ===
+                  "object"
+                    ? complaint.supervisor?._id
+                    : complaint.supervisor;
 
-                const technicianName =
-                  typeof complaint.technician === "object"
-                    ? complaint.technician?.name
-                    : technicians.find(
-                        (technician) =>
-                          technician._id === technicianId
+                const supervisorName =
+                  typeof complaint.supervisor ===
+                  "object"
+                    ? complaint.supervisor?.name
+                    : supervisors.find(
+                        (supervisor) =>
+                          supervisor._id ===
+                          supervisorId
                       )?.name;
 
                 return (
@@ -603,7 +643,8 @@ function AdminComplaints() {
                           : complaint.status ===
                             "In Progress"
                           ? "bg-purple-500"
-                          : complaint.status === "Assigned"
+                          : complaint.status ===
+                            "Assigned"
                           ? "bg-orange-500"
                           : "bg-blue-500"
                       }`}
@@ -616,7 +657,8 @@ function AdminComplaints() {
                         <div className="flex gap-4">
                           <div
                             className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl ${
-                              complaint.status === "Resolved"
+                              complaint.status ===
+                              "Resolved"
                                 ? "bg-emerald-50"
                                 : complaint.status ===
                                   "In Progress"
@@ -638,7 +680,9 @@ function AdminComplaints() {
 
                               <span className="text-xs text-slate-400">
                                 • #
-                                {complaint._id?.slice(-6)}
+                                {complaint._id?.slice(
+                                  -6
+                                )}
                               </span>
                             </div>
 
@@ -671,7 +715,7 @@ function AdminComplaints() {
                               "In Progress" && "⚙ "}
 
                             {complaint.status ===
-                              "Assigned" && "👨‍🔧 "}
+                              "Assigned" && "👨‍💼 "}
 
                             {complaint.status ===
                               "Pending" && "⏳ "}
@@ -712,7 +756,8 @@ function AdminComplaints() {
                               </p>
 
                               <p className="mt-0.5 font-semibold text-slate-500">
-                                Room {complaint.room || "—"}
+                                Room{" "}
+                                {complaint.room || "—"}
                               </p>
                             </div>
 
@@ -743,42 +788,51 @@ function AdminComplaints() {
                                   "No email"}
                               </p>
 
+                              {complaint.mobileNumber && (
+                                <p className="mt-1 truncate text-sm font-bold text-emerald-600">
+                                  📞{" "}
+                                  {
+                                    complaint.mobileNumber
+                                  }
+                                </p>
+                              )}
+
                               <p className="mt-1 text-sm font-semibold text-slate-500">
-                                {complaint.user?.department ||
+                                {complaint.user
+                                  ?.department ||
                                   "No department"}
                                 {" • "}
-                                {complaint.user?.semester
+                                {complaint.user
+                                  ?.semester
                                   ? `Semester ${complaint.user.semester}`
                                   : "No semester"}
                               </p>
 
                               <p className="mt-1 text-sm font-bold text-slate-600">
                                 🏫{" "}
-                                {complaint.user?.classSection ||
+                                {complaint.user
+                                  ?.classSection ||
                                   "No class"}
                               </p>
                             </div>
 
-                            {/* TECHNICIAN */}
+                            {/* SUPERVISOR */}
 
                             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400">
                                 <span className="text-base">
-                                  👨‍🔧
+                                  👨‍💼
                                 </span>
-                                Technician
+                                Supervisor
                               </div>
 
                               <p className="mt-2 truncate font-bold text-slate-700">
-                                {technicianName ||
+                                {supervisorName ||
                                   "Not assigned"}
                               </p>
 
                               <p className="mt-0.5 font-semibold text-slate-500">
-                                {complaint.status ===
-                                "Resolved"
-                                  ? "Task completed"
-                                  : technicianId
+                                {supervisorId
                                   ? "Currently assigned"
                                   : "Waiting for assignment"}
                               </p>
@@ -871,7 +925,7 @@ function AdminComplaints() {
                                 </p>
                               </div>
 
-                              {/* ASSIGNED */}
+                              {/* SUPERVISOR ASSIGNED */}
 
                               <div className="rounded-xl bg-white p-4 shadow-sm">
                                 {complaint.assignedAt ? (
@@ -882,15 +936,15 @@ function AdminComplaints() {
                                       </div>
 
                                       <p className="text-sm font-bold text-slate-800">
-                                        Technician Assigned
+                                        Supervisor Assigned
                                       </p>
                                     </div>
 
                                     <p className="mt-2 text-xs text-slate-500">
                                       Assigned to{" "}
                                       <span className="font-bold text-orange-600">
-                                        {technicianName ||
-                                          "Technician"}
+                                        {supervisorName ||
+                                          "Supervisor"}
                                       </span>
                                     </p>
 
@@ -909,12 +963,12 @@ function AdminComplaints() {
                                       </div>
 
                                       <p className="text-sm font-bold text-slate-400">
-                                        Technician Assignment
+                                        Supervisor Assignment
                                       </p>
                                     </div>
 
                                     <p className="mt-2 text-xs text-slate-400">
-                                      Waiting for technician assignment.
+                                      Waiting for supervisor assignment.
                                     </p>
 
                                     <p className="mt-1 text-xs font-semibold text-slate-400">
@@ -1033,7 +1087,9 @@ function AdminComplaints() {
                       <button
                         type="button"
                         onClick={() =>
-                          toggleComplaint(complaint._id)
+                          toggleComplaint(
+                            complaint._id
+                          )
                         }
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-5 py-3 text-sm font-bold text-indigo-600 shadow-sm transition hover:bg-indigo-50 hover:shadow-md"
                       >
@@ -1052,32 +1108,32 @@ function AdminComplaints() {
                     {isExpanded && (
                       <div className="border-t border-slate-100 bg-slate-50/80 px-5 py-5 sm:px-6">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                          {/* ASSIGN */}
+                          {/* SUPERVISOR ASSIGNMENT */}
 
                           {complaint.status !==
                           "Resolved" ? (
                             <div className="flex-1">
                               <div className="mb-2 flex items-center gap-2">
                                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
-                                  👨‍🔧
+                                  👨‍💼
                                 </div>
 
                                 <p className="text-sm font-bold text-slate-700">
-                                  Technician Assignment
+                                  Supervisor Assignment
                                 </p>
                               </div>
 
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                                 <select
                                   value={
-                                    selectedTechnicians[
+                                    selectedSupervisors[
                                       complaint._id
                                     ] ||
-                                    technicianId ||
+                                    supervisorId ||
                                     ""
                                   }
                                   onChange={(e) =>
-                                    setSelectedTechnicians(
+                                    setSelectedSupervisors(
                                       (prev) => ({
                                         ...prev,
                                         [complaint._id]:
@@ -1088,31 +1144,33 @@ function AdminComplaints() {
                                   className="w-full max-w-xl rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                                 >
                                   <option value="">
-                                    Select technician
+                                    Select supervisor
                                   </option>
 
-                                  {technicians
+                                  {supervisors
                                     .filter(
-                                      (technician) =>
-                                        technician.specialization ===
-                                        categoryToSpecialization[
-                                          complaint.category
-                                        ]
+                                      (supervisor) =>
+                                        supervisor.assignedBlocks?.includes(
+                                          complaint.block
+                                        )
                                     )
                                     .map(
-                                      (technician) => (
+                                      (supervisor) => (
                                         <option
                                           key={
-                                            technician._id
+                                            supervisor._id
                                           }
                                           value={
-                                            technician._id
+                                            supervisor._id
                                           }
                                         >
-                                          {technician.name} -{" "}
                                           {
-                                            technician.specialization
-                                          }
+                                            supervisor.name
+                                          }{" "}
+                                          -{" "}
+                                          {supervisor.assignedBlocks?.join(
+                                            ", "
+                                          )}
                                         </option>
                                       )
                                     )}
@@ -1121,10 +1179,10 @@ function AdminComplaints() {
                                 <button
                                   onClick={() => {
                                     const selectedId =
-                                      selectedTechnicians[
+                                      selectedSupervisors[
                                         complaint._id
                                       ] ||
-                                      technicianId;
+                                      supervisorId;
 
                                     assignComplaint(
                                       complaint._id,
@@ -1132,25 +1190,24 @@ function AdminComplaints() {
                                     );
                                   }}
                                   disabled={
-                                    !selectedTechnicians[
+                                    !selectedSupervisors[
                                       complaint._id
-                                    ] && !technicianId
+                                    ] && !supervisorId
                                   }
                                   className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                                 >
-                                  👨‍🔧{" "}
-                                  {technicianId
-                                    ? "Reassign Technician"
-                                    : "Assign Technician"}
+                                  👨‍💼{" "}
+                                  {supervisorId
+                                    ? "Reassign Supervisor"
+                                    : "Assign Supervisor"}
                                 </button>
                               </div>
 
                               <p className="mt-2 text-xs font-semibold text-slate-500">
-                                Required technician:{" "}
+                                Assigned block:{" "}
                                 <span className="text-indigo-600">
-                                  {categoryToSpecialization[
-                                    complaint.category
-                                  ] || "General"}
+                                  {complaint.block ||
+                                    "Not specified"}
                                 </span>
                               </p>
                             </div>
@@ -1208,9 +1265,9 @@ function AdminComplaints() {
 
                 <p className="mt-2 text-sm leading-6 text-indigo-700">
                   Assign pending complaints to the appropriate
-                  technician as soon as possible. Clear issue
-                  details and completion photos help maintain
-                  transparency and faster resolution.
+                  supervisor as soon as possible. The supervisor
+                  will then assign the suitable technician for
+                  the maintenance work.
                 </p>
               </div>
             </div>

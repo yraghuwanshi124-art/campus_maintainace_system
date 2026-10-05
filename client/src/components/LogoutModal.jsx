@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 
 function LogoutModal({ isOpen, onClose }) {
@@ -7,16 +6,21 @@ function LogoutModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handleLogout = () => {
+    // Remove login data
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
-    navigate("/");
+    // Close modal
+    if (onClose) {
+      onClose();
+    }
+
+    // Go to login/home page
+    navigate("/", { replace: true });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm">
-
-      {/* Modal */}
       <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl">
 
         {/* Top Illustration */}
@@ -28,20 +32,22 @@ function LogoutModal({ isOpen, onClose }) {
 
         {/* Content */}
         <div className="px-7 py-7 text-center">
-
           <h2 className="text-2xl font-extrabold text-slate-800">
             Ready to leave?
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
             Are you sure you want to logout from
-            <span className="font-bold text-indigo-600"> CampusFix</span>?
+            <span className="font-bold text-indigo-600">
+              {" "}CampusFix
+            </span>
+            ?
           </p>
 
           {/* Buttons */}
           <div className="mt-7 flex gap-3">
-
             <button
+              type="button"
               onClick={onClose}
               className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-100"
             >
@@ -49,16 +55,14 @@ function LogoutModal({ isOpen, onClose }) {
             </button>
 
             <button
+              type="button"
               onClick={handleLogout}
               className="flex-1 rounded-xl bg-red-600 px-4 py-3 font-bold text-white shadow-sm transition hover:bg-red-700 hover:shadow-md"
             >
               Logout
             </button>
-
           </div>
-
         </div>
-
       </div>
     </div>
   );

@@ -1,23 +1,40 @@
+
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 
 // =====================================================
-// GET ALL TECHNICIANS
+// GET TECHNICIANS
+// SUPERVISOR CAN ONLY SEE TECHNICIANS OF HIS BLOCKS
 // =====================================================
 
 const getTechnicians = async (req, res) => {
   try {
+    const supervisor = await User.findById(req.user.userId).select(
+      "role assignedBlocks"
+    );
+
+    if (!supervisor || supervisor.role !== "supervisor") {
+      return res.status(403).json({
+        message: "Access denied. Supervisor only.",
+      });
+    }
+
     const technicians = await User.find({
       role: "technician",
-    }).select("name email specialization");
+      assignedBlocks: {
+        $in: supervisor.assignedBlocks || [],
+      },
+    }).select(
+      "name email specialization assignedBlocks"
+    );
 
-    res.json({
+    return res.json({
       technicians,
     });
   } catch (error) {
     console.error("Get technicians error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to fetch technicians",
       error: error.message,
     });
@@ -26,6 +43,7 @@ const getTechnicians = async (req, res) => {
 
 // =====================================================
 // ADD NEW TECHNICIAN
+// SUPERVISOR CAN ADD TECHNICIAN ONLY TO HIS BLOCK
 // =====================================================
 
 const createTechnician = async (req, res) => {
@@ -35,269 +53,168 @@ const createTechnician = async (req, res) => {
       email,
       password,
       specialization,
+      block,
     } = req.body;
 
-    // Required fields
     if (
       !name ||
       !email ||
       !password ||
-      !specialization
+      !specialization ||
+      !block
     ) {
       return res.status(400).json({
-        message: "All technician details are required",
+        message:
+          "Name, email, password, specialization and block are required.",
+      });
+    }
+
+    const supervisor = await User.findById(
+      req.user.userId
+    ).select("role assignedBlocks");
+
+    if (
+      !supervisor ||
+      supervisor.role !== "supervisor"
+    ) {
+      return res.status(403).json({
+        message: "Access denied. Supervisor only.",
+      });
+    }
+
+    const normalizedBlock = block.trim();
+
+    // Supervisor can only create technician
+    // for his own assigned block.
+    if (
+      !supervisor.assignedBlocks?.includes(
+        normalizedBlock
+      )
+    ) {
+      return res.status(403).json({
+        message:
+          "You are not authorized to add technicians to this block.",
       });
     }
 
     const normalizedName = name.trim();
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail =
+      email.trim().toLowerCase();
 
-    // Password validation
     if (password.length < 6) {
       return res.status(400).json({
-        message: "Password must be at least 6 characters long",
+        message:
+          "Password must be at least 6 characters long",
       });
     }
 
-    // Check existing email
     const existingUser = await User.findOne({
       email: normalizedEmail,
     });
 
     if (existingUser) {
       return res.status(400).json({
-        message: "An account with this email already exists",
+        message:
+          "An account with this email already exists",
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(
       password,
       10
     );
 
-    // Create technician
     const technician = await User.create({
       name: normalizedName,
       email: normalizedEmail,
       password: hashedPassword,
       role: "technician",
       specialization,
+      assignedBlocks: [normalizedBlock],
       classSection: "Staff",
       isVerified: true,
+      registrationEmailVerified: true,
     });
 
-    res.status(201).json({
-      message: "Technician created successfully",
+    return res.status(201).json({
+      message:
+        "Technician created successfully",
       technician: {
         _id: technician._id,
         name: technician.name,
         email: technician.email,
-        specialization: technician.specialization,
+        specialization:
+          technician.specialization,
+        assignedBlocks:
+          technician.assignedBlocks,
       },
     });
   } catch (error) {
-    console.error("Create technician error:", error);
+    console.error(
+      "Create technician error:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to create technician",
       error: error.message,
     });
   }
 };
+
 // =====================================================
 // DELETE TECHNICIAN
+// SUPERVISOR CAN DELETE ONLY TECHNICIANS
+// BELONGING TO HIS BLOCK
 // =====================================================
 
 const deleteTechnician = async (req, res) => {
   try {
+    const supervisor = await User.findById(
+      req.user.userId
+    ).select("role assignedBlocks");
+
+    if (
+      !supervisor ||
+      supervisor.role !== "supervisor"
+    ) {
+      return res.status(403).json({
+        message: "Access denied. Supervisor only.",
+      });
+    }
+
     const technician = await User.findOne({
       _id: req.params.id,
       role: "technician",
+      assignedBlocks: {
+        $in: supervisor.assignedBlocks || [],
+      },
     });
 
     if (!technician) {
       return res.status(404).json({
-        message: "Technician not found",
+        message:
+          "Technician not found or you are not authorized to delete this technician.",
       });
     }
 
-    await User.findByIdAndDelete(req.params.id);
+    await User.findByIdAndDelete(
+      technician._id
+    );
 
-    res.json({
-      message: "Technician deleted successfully",
-    });
-  } catch (error) {
-    console.error("Delete technician error:", error);
-
-    res.status(500).json({
-      message: "Failed to delete technician",
-      error: error.message,
-    });
-  }
-};
-
-// =====================================================
-// CREATE DEFAULT TECHNICIANS
-// =====================================================
-
-const createDefaultTechnicians = async (req, res) => {
-  try {
-    const technicians = [
-      // Electricians
-      {
-        name: "Rahul Sharma",
-        email: "rahul.electrician@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Electrician",
-        classSection: "Staff",
-        isVerified: true,
-      },
-      {
-        name: "Rohit Yadav",
-        email: "rohit.electrician@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Electrician",
-        classSection: "Staff",
-        isVerified: true,
-      },
-
-      // AC Technicians
-      {
-        name: "Saurav Kumar",
-        email: "saurav.ac@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "AC Technician",
-        classSection: "Staff",
-        isVerified: true,
-      },
-      {
-        name: "Rohit Sharma",
-        email: "rohit.ac@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "AC Technician",
-        classSection: "Staff",
-        isVerified: true,
-      },
-
-      // Computer Technicians
-      {
-        name: "Kunal Patel",
-        email: "kunal.computer@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Computer Technician",
-        classSection: "Staff",
-        isVerified: true,
-      },
-      {
-        name: "Abhishek Singh",
-        email: "abhishek.computer@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Computer Technician",
-        classSection: "Staff",
-        isVerified: true,
-      },
-
-      // Plumbers
-      {
-        name: "Sunil Verma",
-        email: "sunil.plumber@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Plumber",
-        classSection: "Staff",
-        isVerified: true,
-      },
-      {
-        name: "Manoj Yadav",
-        email: "manoj.plumber@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Plumber",
-        classSection: "Staff",
-        isVerified: true,
-      },
-
-      // Carpenters
-      {
-        name: "Ankit Sharma",
-        email: "ankit.carpenter@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Carpenter",
-        classSection: "Staff",
-        isVerified: true,
-      },
-      {
-        name: "Ravi Patel",
-        email: "ravi.carpenter@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "Carpenter",
-        classSection: "Staff",
-        isVerified: true,
-      },
-
-      // General Technicians
-      {
-        name: "Akash Verma",
-        email: "akash.general@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "General",
-        classSection: "Staff",
-        isVerified: true,
-      },
-      {
-        name: "Sumit Jain",
-        email: "sumit.general@test.com",
-        password: await bcrypt.hash("123456", 10),
-        role: "technician",
-        specialization: "General",
-        classSection: "Staff",
-        isVerified: true,
-      },
-    ];
-
-    const createdTechnicians = [];
-
-    for (const technician of technicians) {
-      const existing = await User.findOne({
-        email: technician.email,
-      });
-
-      if (!existing) {
-        const newTechnician =
-          await User.create(technician);
-
-        createdTechnicians.push({
-          name: newTechnician.name,
-          email: newTechnician.email,
-          specialization:
-            newTechnician.specialization,
-        });
-      }
-    }
-
-    res.status(201).json({
+    return res.json({
       message:
-        "Default technicians created successfully",
-      technicians: createdTechnicians,
+        "Technician deleted successfully",
     });
   } catch (error) {
-    console.log(
-      "Create technicians error:",
+    console.error(
+      "Delete technician error:",
       error
     );
 
-    res.status(500).json({
-      message: "Failed to create technicians",
+    return res.status(500).json({
+      message:
+        "Failed to delete technician",
       error: error.message,
     });
   }
@@ -307,5 +224,4 @@ module.exports = {
   getTechnicians,
   createTechnician,
   deleteTechnician,
-  createDefaultTechnicians,
 };

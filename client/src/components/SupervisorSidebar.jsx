@@ -1,41 +1,46 @@
+
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
-function AdminSidebar({ onLogout }) {
+function SupervisorSidebar({ onLogout }) {
   const [isOpen, setIsOpen] = useState(true);
 
   const menuItems = [
     {
       name: "Dashboard",
-      path: "/admin",
+      path: "/supervisor/dashboard",
       icon: "⌂",
     },
-{
-  name: "AI Chatbot",
-  path: "/admin/ai-chatbot",
-  icon: "🤖",
-},
     {
-      name: "Monthly Reports",
-      path: "/admin/monthly-report",
-      icon: "▥",
-    },
-    {
-      name: "All Complaints",
-      path: "/admin/complaints",
+      name: "Complaints",
+      path: "/supervisor/complaints",
       icon: "▤",
     },
     {
+      name: "Technicians",
+      path: "/supervisor/technicians",
+      icon: "◉",
+    },
+    {
+      name: "Notifications",
+      path: "/supervisor/notifications",
+      icon: "🔔",
+    },
+    {
+      name: "AI Chatbot",
+      path: "/supervisor/ai-chatbot",
+      icon: "🤖",
+    },
+    {
       name: "Settings",
-      path: "/admin/settings",
+      path: "/supervisor/settings",
       icon: "⚙",
     },
   ];
 
   return (
     <>
-      {/* ================= SIDEBAR TOGGLE ================= */}
-
+      {/* Sidebar Toggle */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -47,8 +52,7 @@ function AdminSidebar({ onLogout }) {
         {isOpen ? "‹" : "☰"}
       </button>
 
-      {/* ================= MOBILE OVERLAY ================= */}
-
+      {/* Mobile Overlay */}
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}
@@ -56,8 +60,7 @@ function AdminSidebar({ onLogout }) {
         ></div>
       )}
 
-      {/* ================= SIDEBAR ================= */}
-
+      {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 z-40 h-screen overflow-hidden border-r border-indigo-100 bg-gradient-to-b from-indigo-50 via-white to-slate-50 shadow-xl transition-all duration-300 ${
           isOpen
@@ -67,13 +70,12 @@ function AdminSidebar({ onLogout }) {
           isOpen ? "lg:w-64" : "lg:w-20"
         }`}
       >
-        {/* Decorative background */}
+        {/* Decorative Background */}
         <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-indigo-100/60 blur-3xl"></div>
 
         <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-indigo-100/50 blur-3xl"></div>
 
-        {/* ================= BRAND ================= */}
-
+        {/* Brand */}
         <div
           className={`relative flex h-24 items-center border-b border-indigo-100 bg-white/80 backdrop-blur-sm ${
             isOpen
@@ -83,7 +85,6 @@ function AdminSidebar({ onLogout }) {
         >
           {isOpen ? (
             <div className="flex items-center gap-3">
-              {/* Logo */}
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-xl font-black text-white shadow-md shadow-indigo-200">
                 C
               </div>
@@ -94,7 +95,7 @@ function AdminSidebar({ onLogout }) {
                 </h1>
 
                 <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">
-                  Admin Portal
+                  Supervisor Portal
                 </p>
               </div>
             </div>
@@ -105,13 +106,12 @@ function AdminSidebar({ onLogout }) {
           )}
         </div>
 
-        {/* ================= NAVIGATION ================= */}
-
+        {/* Navigation */}
         <nav className="relative px-3 py-7">
           {isOpen && (
             <div className="mb-4 px-3">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-400">
-                Administration
+                Operations
               </p>
             </div>
           )}
@@ -121,7 +121,7 @@ function AdminSidebar({ onLogout }) {
               <NavLink
                 key={item.path}
                 to={item.path}
-                end={item.path === "/admin"}
+                end={item.path === "/supervisor/dashboard"}
                 onClick={() => {
                   if (window.innerWidth < 1024) {
                     setIsOpen(false);
@@ -142,12 +142,10 @@ function AdminSidebar({ onLogout }) {
               >
                 {({ isActive }) => (
                   <>
-                    {/* Active indicator */}
                     {isActive && (
                       <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-white"></span>
                     )}
 
-                    {/* Icon */}
                     <span
                       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold transition ${
                         isActive
@@ -158,7 +156,6 @@ function AdminSidebar({ onLogout }) {
                       {item.icon}
                     </span>
 
-                    {/* Menu Name */}
                     {isOpen && (
                       <span
                         className={`truncate text-[15px] tracking-wide ${
@@ -171,7 +168,6 @@ function AdminSidebar({ onLogout }) {
                       </span>
                     )}
 
-                    {/* Active Dot */}
                     {isOpen && isActive && (
                       <span className="ml-auto h-2 w-2 rounded-full bg-white"></span>
                     )}
@@ -182,25 +178,22 @@ function AdminSidebar({ onLogout }) {
           </div>
         </nav>
 
-        {/* ================= BOTTOM SECTION ================= */}
-
+        {/* Bottom Section */}
         <div
           className={`absolute bottom-0 left-0 right-0 border-t border-indigo-100 bg-white/90 backdrop-blur-sm ${
             isOpen ? "p-4" : "p-2"
           }`}
         >
-          {/* Admin Profile / System Status */}
-
           {isOpen && (
             <div className="mb-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-3.5">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-black text-white shadow-sm">
-                  A
+                  S
                 </div>
 
                 <div className="min-w-0">
                   <p className="truncate text-sm font-extrabold text-slate-800">
-                    Administrator
+                    Supervisor
                   </p>
 
                   <div className="mt-1 flex items-center gap-1.5">
@@ -214,8 +207,6 @@ function AdminSidebar({ onLogout }) {
               </div>
             </div>
           )}
-
-          {/* Logout */}
 
           <button
             type="button"
@@ -243,4 +234,4 @@ function AdminSidebar({ onLogout }) {
   );
 }
 
-export default AdminSidebar;
+export default SupervisorSidebar;

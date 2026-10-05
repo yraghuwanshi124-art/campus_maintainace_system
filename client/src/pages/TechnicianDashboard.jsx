@@ -1087,6 +1087,12 @@ function TechnicianDashboard() {
                           {complaint.user?.name || "Unknown Student"}
                         </p>
 
+                        {complaint.mobileNumber && (
+                          <p className="mt-1 truncate text-xs font-bold text-emerald-600">
+                            📞 {complaint.mobileNumber}
+                          </p>
+                        )}
+
                       </div>
 
 

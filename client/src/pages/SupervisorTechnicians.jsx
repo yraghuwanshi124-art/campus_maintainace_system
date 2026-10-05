@@ -1,27 +1,31 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
-import AdminSidebar from "../components/AdminSidebar";
+import SupervisorSidebar from "../components/SupervisorSidebar";
 import LogoutModal from "../components/LogoutModal";
 
-function AdminTechnicians() {
+function SupervisorTechnicians() {
     const [technicians, setTechnicians] = useState([]);
     const [showLogout, setShowLogout] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
 
-    const [showAddModal, setShowAddModal] =
-        useState(false);
+    const user = JSON.parse(
+        localStorage.getItem("user") || "{}"
+    );
+
+    const assignedBlocks = user?.assignedBlocks || [];
 
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         password: "",
         specialization: "General",
+        block: assignedBlocks[0] || "",
     });
 
     const [showPassword, setShowPassword] =
         useState(false);
 
     const [loading, setLoading] = useState(false);
-
     const [message, setMessage] = useState("");
     const [errorMessage, setErrorMessage] =
         useState("");
@@ -34,11 +38,14 @@ function AdminTechnicians() {
         try {
             const token = localStorage.getItem("token");
 
-            const response = await api.get("/technicians", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const response = await api.get(
+                "/technicians",
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             setTechnicians(
                 response.data.technicians || []
@@ -47,6 +54,11 @@ function AdminTechnicians() {
             console.log(
                 "Failed to fetch technicians:",
                 error
+            );
+
+            setErrorMessage(
+                error.response?.data?.message ||
+                    "Failed to fetch technicians."
             );
         }
     };
@@ -67,6 +79,25 @@ function AdminTechnicians() {
     };
 
     // =====================================================
+    // OPEN ADD MODAL
+    // =====================================================
+
+    const openAddModal = () => {
+        setFormData({
+            name: "",
+            email: "",
+            password: "",
+            specialization: "General",
+            block: assignedBlocks[0] || "",
+        });
+
+        setMessage("");
+        setErrorMessage("");
+        setShowPassword(false);
+        setShowAddModal(true);
+    };
+
+    // =====================================================
     // ADD TECHNICIAN
     // =====================================================
 
@@ -80,7 +111,8 @@ function AdminTechnicians() {
             !formData.name ||
             !formData.email ||
             !formData.password ||
-            !formData.specialization
+            !formData.specialization ||
+            !formData.block
         ) {
             setErrorMessage(
                 "Please fill in all fields."
@@ -112,17 +144,8 @@ function AdminTechnicians() {
 
             setMessage(
                 response.data.message ||
-                "Technician added successfully."
+                    "Technician added successfully."
             );
-
-            setFormData({
-                name: "",
-                email: "",
-                password: "",
-                specialization: "General",
-            });
-
-            setShowPassword(false);
 
             await fetchTechnicians();
 
@@ -138,7 +161,7 @@ function AdminTechnicians() {
 
             setErrorMessage(
                 error.response?.data?.message ||
-                "Failed to add technician."
+                    "Failed to add technician."
             );
         } finally {
             setLoading(false);
@@ -159,6 +182,7 @@ function AdminTechnicians() {
             email: "",
             password: "",
             specialization: "General",
+            block: assignedBlocks[0] || "",
         });
 
         setMessage("");
@@ -166,7 +190,13 @@ function AdminTechnicians() {
         setShowPassword(false);
     };
 
-    const handleDeleteTechnician = async (technicianId) => {
+    // =====================================================
+    // DELETE TECHNICIAN
+    // =====================================================
+
+    const handleDeleteTechnician = async (
+        technicianId
+    ) => {
         const confirmDelete = window.confirm(
             "Are you sure you want to delete this technician?"
         );
@@ -176,11 +206,14 @@ function AdminTechnicians() {
         try {
             const token = localStorage.getItem("token");
 
-            await api.delete(`/technicians/${technicianId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            await api.delete(
+                `/technicians/${technicianId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             await fetchTechnicians();
         } catch (error) {
@@ -191,51 +224,87 @@ function AdminTechnicians() {
 
             alert(
                 error.response?.data?.message ||
-                "Failed to delete technician."
+                    "Failed to delete technician."
             );
         }
     };
 
-
-
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Sidebar */}
-            <AdminSidebar
+            {/* =====================================================
+                SIDEBAR
+            ===================================================== */}
+
+            <SupervisorSidebar
                 onLogout={() => setShowLogout(true)}
             />
 
             <div className="lg:ml-64">
-                {/* Header */}
+                {/* =====================================================
+                    HEADER
+                ===================================================== */}
+
                 <div className="border-b border-slate-200 bg-white px-6 py-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="text-2xl font-black text-slate-800">
+                            <p className="text-sm font-bold text-indigo-600">
+                                CampusFix Supervisor Portal
+                            </p>
+
+                            <h1 className="mt-1 text-2xl font-black text-slate-800">
                                 Technicians
                             </h1>
 
                             <p className="mt-1 text-sm text-slate-500">
-                                View and manage all maintenance technicians
+                                Manage technicians assigned to your block
                             </p>
                         </div>
 
                         <button
                             type="button"
-                            onClick={() => {
-                                setShowAddModal(true);
-                                setMessage("");
-                                setErrorMessage("");
-                            }}
+                            onClick={openAddModal}
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md"
                         >
-                            <span className="text-lg">+</span>
+                            <span className="text-lg">
+                                +
+                            </span>
+
                             Add New Technician
                         </button>
                     </div>
                 </div>
 
                 <main className="p-6">
-                    {/* Stats */}
+                    {/* =====================================================
+                        BLOCK ACCESS
+                    ===================================================== */}
+
+                    <div className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-wide text-indigo-500">
+                                    Your Assigned Blocks
+                                </p>
+
+                                <p className="mt-1 text-sm font-bold text-indigo-900">
+                                    {assignedBlocks.length
+                                        ? assignedBlocks.join(
+                                              ", "
+                                          )
+                                        : "No block assigned"}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-indigo-600 shadow-sm">
+                                🔐 Block Restricted
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* =====================================================
+                        STATS
+                    ===================================================== */}
+
                     <div className="mb-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 text-white shadow-sm">
                             <div className="flex items-start justify-between">
@@ -270,8 +339,11 @@ function AdminTechnicians() {
                                     ).size
                                 }
                             </h2>
-                        </div>
 
+                            <p className="mt-1 text-xs font-semibold text-slate-400">
+                                Available skill categories
+                            </p>
+                        </div>
 
                         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                             <p className="text-sm font-medium text-slate-500">
@@ -288,7 +360,10 @@ function AdminTechnicians() {
                         </div>
                     </div>
 
-                    {/* Technician List */}
+                    {/* =====================================================
+                        TECHNICIAN LIST
+                    ===================================================== */}
+
                     {technicians.length === 0 ? (
                         <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-3xl">
@@ -300,13 +375,13 @@ function AdminTechnicians() {
                             </h3>
 
                             <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                                Add your first technician to start
-                                assigning maintenance complaints.
+                                No technicians are currently
+                                assigned to your block.
                             </p>
 
                             <button
                                 type="button"
-                                onClick={() => setShowAddModal(true)}
+                                onClick={openAddModal}
                                 className="mt-5 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-700"
                             >
                                 + Add Technician
@@ -314,92 +389,119 @@ function AdminTechnicians() {
                         </div>
                     ) : (
                         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                            {technicians.map((technician) => (
-                                <div
-                                    key={technician._id}
-                                    className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-md"
-                                >
-                                    {/* Top */}
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-2xl">
-                                            👨‍🔧
-                                        </div>
-
-                                        <div className="min-w-0">
-                                            <h3 className="truncate font-black text-slate-800">
-                                                {technician.name}
-                                            </h3>
-
-                                            <p className="mt-1 truncate text-sm text-slate-500">
-                                                {technician.email}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Details */}
-                                    <div className="mt-6 space-y-4 border-t border-slate-100 pt-5">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                                                Specialization
-                                            </span>
-
-                                            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
-                                                {technician.specialization ||
-                                                    "General"}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                                                Role
-                                            </span>
-
-                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                                Technician
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleDeleteTechnician(technician._id)
+                            {technicians.map(
+                                (technician) => (
+                                    <div
+                                        key={
+                                            technician._id
                                         }
-                                        className="mt-5 w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+                                        className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-md"
                                     >
-                                        🗑️ Delete Technician
-                                    </button>
-                                </div>
-                            ))}
+                                        {/* Top */}
+
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-2xl">
+                                                👨‍🔧
+                                            </div>
+
+                                            <div className="min-w-0">
+                                                <h3 className="truncate font-black text-slate-800">
+                                                    {
+                                                        technician.name
+                                                    }
+                                                </h3>
+
+                                                <p className="mt-1 truncate text-sm text-slate-500">
+                                                    {
+                                                        technician.email
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Details */}
+
+                                        <div className="mt-6 space-y-4 border-t border-slate-100 pt-5">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                                                    Specialization
+                                                </span>
+
+                                                <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
+                                                    {technician.specialization ||
+                                                        "General"}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                                                    Block
+                                                </span>
+
+                                                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-600">
+                                                    {technician.assignedBlocks?.join(
+                                                        ", "
+                                                    ) ||
+                                                        "Not assigned"}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                                                    Role
+                                                </span>
+
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                                    Technician
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Delete */}
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleDeleteTechnician(
+                                                    technician._id
+                                                )
+                                            }
+                                            className="mt-5 w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+                                        >
+                                            🗑️ Delete Technician
+                                        </button>
+                                    </div>
+                                )
+                            )}
                         </div>
                     )}
                 </main>
             </div>
 
             {/* =====================================================
-          ADD TECHNICIAN MODAL
-      ===================================================== */}
+                ADD TECHNICIAN MODAL
+            ===================================================== */}
 
             {showAddModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-                        {/* Modal Header */}
+                        {/* Header */}
+
                         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-lg">
-                                        👨‍🔧
-                                    </div>
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-lg">
+                                    👨‍🔧
+                                </div>
 
-                                    <div>
-                                        <h2 className="text-lg font-black text-slate-800">
-                                            Add New Technician
-                                        </h2>
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-800">
+                                        Add New Technician
+                                    </h2>
 
-                                        <p className="text-xs text-slate-500">
-                                            Create a technician account
-                                        </p>
-                                    </div>
+                                    <p className="text-xs text-slate-500">
+                                        Create technician for your block
+                                    </p>
                                 </div>
                             </div>
 
@@ -414,11 +516,15 @@ function AdminTechnicians() {
                         </div>
 
                         {/* Form */}
+
                         <form
-                            onSubmit={handleAddTechnician}
+                            onSubmit={
+                                handleAddTechnician
+                            }
                             className="space-y-5 p-6"
                         >
                             {/* Name */}
+
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
                                     Full Name
@@ -428,13 +534,16 @@ function AdminTechnicians() {
                                     type="text"
                                     name="name"
                                     value={formData.name}
-                                    onChange={handleChange}
+                                    onChange={
+                                        handleChange
+                                    }
                                     placeholder="Enter technician name"
                                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50"
                                 />
                             </div>
 
                             {/* Email */}
+
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
                                     Email Address
@@ -444,13 +553,57 @@ function AdminTechnicians() {
                                     type="email"
                                     name="email"
                                     value={formData.email}
-                                    onChange={handleChange}
+                                    onChange={
+                                        handleChange
+                                    }
                                     placeholder="technician@medicaps.ac.in"
                                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50"
                                 />
                             </div>
 
+                            {/* Block */}
+
+                            <div>
+                                <label className="mb-2 block text-sm font-bold text-slate-700">
+                                    Assigned Block
+                                </label>
+
+                                <select
+                                    name="block"
+                                    value={
+                                        formData.block
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50"
+                                >
+                                    {assignedBlocks.length ===
+                                    0 ? (
+                                        <option value="">
+                                            No block assigned
+                                        </option>
+                                    ) : (
+                                        assignedBlocks.map(
+                                            (block) => (
+                                                <option
+                                                    key={
+                                                        block
+                                                    }
+                                                    value={
+                                                        block
+                                                    }
+                                                >
+                                                    {block}
+                                                </option>
+                                            )
+                                        )
+                                    )}
+                                </select>
+                            </div>
+
                             {/* Specialization */}
+
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
                                     Specialization
@@ -458,8 +611,12 @@ function AdminTechnicians() {
 
                                 <select
                                     name="specialization"
-                                    value={formData.specialization}
-                                    onChange={handleChange}
+                                    value={
+                                        formData.specialization
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
                                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50"
                                 >
                                     <option value="Electrician">
@@ -489,6 +646,7 @@ function AdminTechnicians() {
                             </div>
 
                             {/* Password */}
+
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
                                     Initial Password
@@ -502,8 +660,12 @@ function AdminTechnicians() {
                                                 : "password"
                                         }
                                         name="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
+                                        value={
+                                            formData.password
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
                                         placeholder="Minimum 6 characters"
                                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50"
                                     />
@@ -511,34 +673,47 @@ function AdminTechnicians() {
                                     <button
                                         type="button"
                                         onClick={() =>
-                                            setShowPassword(!showPassword)
+                                            setShowPassword(
+                                                !showPassword
+                                            )
                                         }
                                         className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm text-slate-400 hover:bg-slate-100"
                                     >
-                                        {showPassword ? "🙈" : "👁️"}
+                                        {showPassword
+                                            ? "🙈"
+                                            : "👁️"}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Error */}
+
                             {errorMessage && (
                                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-                                    ⚠️ {errorMessage}
+                                    ⚠️{" "}
+                                    {
+                                        errorMessage
+                                    }
                                 </div>
                             )}
 
                             {/* Success */}
+
                             {message && (
                                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-600">
-                                    ✓ {message}
+                                    ✓{" "}
+                                    {message}
                                 </div>
                             )}
 
                             {/* Buttons */}
+
                             <div className="flex gap-3 border-t border-slate-100 pt-5">
                                 <button
                                     type="button"
-                                    onClick={closeModal}
+                                    onClick={
+                                        closeModal
+                                    }
                                     disabled={loading}
                                     className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
                                 >
@@ -547,7 +722,11 @@ function AdminTechnicians() {
 
                                 <button
                                     type="submit"
-                                    disabled={loading}
+                                    disabled={
+                                        loading ||
+                                        assignedBlocks.length ===
+                                            0
+                                    }
                                     className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {loading
@@ -561,12 +740,15 @@ function AdminTechnicians() {
             )}
 
             {/* Logout Modal */}
+
             <LogoutModal
                 isOpen={showLogout}
-                onClose={() => setShowLogout(false)}
+                onClose={() =>
+                    setShowLogout(false)
+                }
             />
         </div>
     );
 }
 
-export default AdminTechnicians;
+export default SupervisorTechnicians;

@@ -1,25 +1,34 @@
 
 const Complaint = require("../models/Complaint");
 const User = require("../models/User");
+
 const {
   sendComplaintNotification,
-  sendTechnicianAssignmentEmail,
   sendComplaintResolvedEmail,
 } = require("../services/emailService");
 
-// Create Complaint
+const {
+  createNotification,
+} = require("../utils/notificationService");
+
+// =====================================================
+// CREATE COMPLAINT
+// STUDENT → ADMIN NOTIFICATION
+// =====================================================
+
 const createComplaint = async (req, res) => {
   try {
     const {
       block,
+      floor,
       room,
+      mobileNumber,
       category,
       description,
       priority,
       image,
     } = req.body;
 
-    // Validate required complaint details
     if (
       !block?.trim() ||
       !room?.trim() ||
@@ -33,19 +42,15 @@ const createComplaint = async (req, res) => {
       });
     }
 
-    /*
-      Duplicate Complaint Detection
+    const trimmedMobile = mobileNumber?.toString().trim();
 
-      If an active complaint already exists for the same:
-      - Block
-      - Room
-      - Category
+    if (!trimmedMobile || !/^[0-9]{10}$/.test(trimmedMobile)) {
+      return res.status(400).json({
+        message: "Please enter a valid 10-digit mobile number.",
+      });
+    }
 
-      then do not create another complaint.
-
-      Resolved complaints are intentionally excluded because
-      the same issue can happen again after being resolved.
-    */
+    // Check duplicate active complaint
     const existingComplaint = await Complaint.findOne({
       block: block.trim(),
       room: room.trim(),
@@ -68,7 +73,8 @@ const createComplaint = async (req, res) => {
 
       const hasAlreadySupported =
         existingComplaint.supporters?.some(
-          (supporterId) => supporterId.toString() === currentUserId
+          (supporterId) =>
+            supporterId.toString() === currentUserId
         );
 
       return res.status(409).json({
@@ -80,11 +86,26 @@ const createComplaint = async (req, res) => {
       });
     }
 
-    // Create new complaint
+    // Find Admin assigned to this block
+    const blockAdmin = await User.findOne({
+      role: "admin",
+      assignedBlocks: block.trim(),
+    });
+
+    if (!blockAdmin) {
+      return res.status(400).json({
+        message: `No admin is assigned to ${block.trim()}.`,
+      });
+    }
+
+    // Create complaint
     const complaint = await Complaint.create({
       user: req.user.userId,
+      admin: blockAdmin._id,
       block: block.trim(),
+      floor: floor ? floor.trim() : "",
       room: room.trim(),
+      mobileNumber: trimmedMobile,
       category: category.trim(),
       description: description.trim(),
       priority,
@@ -92,8 +113,17 @@ const createComplaint = async (req, res) => {
       supporters: [],
     });
 
-    // Send email notification to admin
+    // Email notification
     await sendComplaintNotification(complaint);
+
+    // In-app notification → Admin
+    await createNotification({
+      recipient: blockAdmin._id,
+      title: "New Complaint Received",
+      message: `A new ${complaint.category} complaint has been reported in ${complaint.block}, Room ${complaint.room}.`,
+      type: "complaint_created",
+      complaint: complaint._id,
+    });
 
     res.status(201).json({
       message: "Complaint created successfully",
@@ -110,7 +140,10 @@ const createComplaint = async (req, res) => {
   }
 };
 
-// Support Existing Complaint
+// =====================================================
+// SUPPORT EXISTING COMPLAINT
+// =====================================================
+
 const supportComplaint = async (req, res) => {
   try {
     const complaint = await Complaint.findOne({
@@ -128,16 +161,16 @@ const supportComplaint = async (req, res) => {
 
     const userId = req.user.userId.toString();
 
-    // Original reporter cannot support their own complaint
     if (complaint.user.toString() === userId) {
       return res.status(400).json({
-        message: "You are already the original reporter of this complaint",
+        message:
+          "You are already the original reporter of this complaint",
       });
     }
 
-    // Prevent same student from supporting multiple times
     const alreadySupported = complaint.supporters?.some(
-      (supporterId) => supporterId.toString() === userId
+      (supporterId) =>
+        supporterId.toString() === userId
     );
 
     if (alreadySupported) {
@@ -150,7 +183,9 @@ const supportComplaint = async (req, res) => {
 
     await complaint.save();
 
-    const updatedComplaint = await Complaint.findById(complaint._id)
+    const updatedComplaint = await Complaint.findById(
+      complaint._id
+    )
       .populate(
         "user",
         "name email enrollmentNumber department semester classSection"
@@ -175,7 +210,10 @@ const supportComplaint = async (req, res) => {
   }
 };
 
-// Get My Complaints
+// =====================================================
+// GET MY COMPLAINTS
+// =====================================================
+
 const getMyComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find({
@@ -185,6 +223,7 @@ const getMyComplaints = async (req, res) => {
         "user",
         "name email enrollmentNumber department semester classSection"
       )
+      .populate("admin", "name email assignedBlocks")
       .populate("technician", "name email")
       .populate(
         "supporters",
@@ -196,6 +235,8 @@ const getMyComplaints = async (req, res) => {
       complaints,
     });
   } catch (error) {
+    console.error("GET MY COMPLAINTS ERROR:", error);
+
     res.status(500).json({
       message: "Failed to fetch complaints",
       error: error.message,
@@ -203,39 +244,17 @@ const getMyComplaints = async (req, res) => {
   }
 };
 
-// Get All Complaints
-const getAllComplaints = async (req, res) => {
-  try {
-    const complaints = await Complaint.find()
-      .populate(
-        "user",
-        "name email enrollmentNumber department semester classSection"
-      )
-      .populate("technician", "name email")
-      .populate(
-        "supporters",
-        "name email enrollmentNumber department semester classSection"
-      )
-      .sort({ createdAt: -1 });
+// =====================================================
+// GET ASSIGNED COMPLAINTS - TECHNICIAN
+// =====================================================
 
-    res.json({
-      complaints,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to fetch complaints",
-      error: error.message,
-    });
-  }
-};
-
-// Get Assigned Complaints
 const getAssignedComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find({
       technician: req.user.userId,
     })
       .populate("user", "name email classSection")
+      .populate("admin", "name email assignedBlocks")
       .populate(
         "supporters",
         "name email enrollmentNumber department semester classSection"
@@ -246,6 +265,8 @@ const getAssignedComplaints = async (req, res) => {
       complaints,
     });
   } catch (error) {
+    console.error("GET ASSIGNED COMPLAINTS ERROR:", error);
+
     res.status(500).json({
       message: "Failed to fetch assigned complaints",
       error: error.message,
@@ -253,7 +274,53 @@ const getAssignedComplaints = async (req, res) => {
   }
 };
 
-// Update Complaint Status
+// =====================================================
+// GET ALL COMPLAINTS - ADMIN
+// =====================================================
+
+const getAllComplaints = async (req, res) => {
+  try {
+    const admin = await User.findById(req.user.userId);
+
+    if (!admin || admin.role !== "admin") {
+      return res.status(403).json({
+        message: "Access denied. Admin only.",
+      });
+    }
+
+    const complaints = await Complaint.find({
+      block: { $in: admin.assignedBlocks || [] },
+    })
+      .populate(
+        "user",
+        "name email enrollmentNumber department semester classSection"
+      )
+      .populate("admin", "name email assignedBlocks")
+      .populate("technician", "name email")
+      .populate(
+        "supporters",
+        "name email enrollmentNumber department semester classSection"
+      )
+      .sort({ createdAt: -1 });
+
+    res.json({
+      complaints,
+    });
+  } catch (error) {
+    console.error("GET ADMIN COMPLAINTS ERROR:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch complaints",
+      error: error.message,
+    });
+  }
+};
+
+// =====================================================
+// UPDATE COMPLAINT STATUS
+// TECHNICIAN → RESOLVED → STUDENT NOTIFICATION
+// =====================================================
+
 const updateComplaintStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -293,9 +360,19 @@ const updateComplaintStatus = async (req, res) => {
       });
     }
 
-    // Send email to admin when complaint is resolved
+    // Complaint resolved
     if (status === "Resolved") {
+      // Existing email notification
       await sendComplaintResolvedEmail(complaint);
+
+      // In-app notification → Student
+      await createNotification({
+        recipient: complaint.user,
+        title: "Complaint Resolved",
+        message: `Your ${complaint.category} complaint for ${complaint.block}, Room ${complaint.room} has been resolved.`,
+        type: "complaint_resolved",
+        complaint: complaint._id,
+      });
     }
 
     res.json({
@@ -303,6 +380,8 @@ const updateComplaintStatus = async (req, res) => {
       complaint,
     });
   } catch (error) {
+    console.error("UPDATE COMPLAINT STATUS ERROR:", error);
+
     res.status(500).json({
       message: "Failed to update complaint status",
       error: error.message,
@@ -310,13 +389,18 @@ const updateComplaintStatus = async (req, res) => {
   }
 };
 
-// Assign Complaint
+// =====================================================
+// ASSIGN COMPLAINT
+// ADMIN → SUPERVISOR NOTIFICATION
+// =====================================================
+
 const assignComplaint = async (req, res) => {
   try {
-    const { technicianId } = req.body;
+    const { supervisorId } = req.body;
 
-    // Check complaint first
-    const existingComplaint = await Complaint.findById(req.params.id);
+    const existingComplaint = await Complaint.findById(
+      req.params.id
+    );
 
     if (!existingComplaint) {
       return res.status(404).json({
@@ -324,30 +408,49 @@ const assignComplaint = async (req, res) => {
       });
     }
 
-    // Prevent reassignment of resolved complaint
+    const admin = await User.findById(req.user.userId);
+
+    if (!admin || admin.role !== "admin") {
+      return res.status(403).json({
+        message: "Access denied. Admin only.",
+      });
+    }
+
+    const canManageBlock = (
+      admin.assignedBlocks || []
+    ).includes(existingComplaint.block);
+
+    if (!canManageBlock) {
+      return res.status(403).json({
+        message:
+          `You are not authorized to manage complaints from ${existingComplaint.block}.`,
+      });
+    }
+
     if (existingComplaint.status === "Resolved") {
       return res.status(400).json({
         message: "Resolved complaint cannot be reassigned",
       });
     }
 
-    // Check technician
-    const technician = await User.findOne({
-      _id: technicianId,
-      role: "technician",
+    const supervisor = await User.findOne({
+      _id: supervisorId,
+      role: "supervisor",
+      assignedBlocks: existingComplaint.block,
     });
 
-    if (!technician) {
+    if (!supervisor) {
       return res.status(404).json({
-        message: "Technician not found",
+        message:
+          "Supervisor not found or supervisor is not assigned to this block.",
       });
     }
 
-    // Assign complaint
     const complaint = await Complaint.findByIdAndUpdate(
       req.params.id,
       {
-        technician: technicianId,
+        supervisor: supervisor._id,
+        technician: null,
         status: "Assigned",
         assignedAt: new Date(),
       },
@@ -356,14 +459,18 @@ const assignComplaint = async (req, res) => {
       }
     );
 
-    // Send notification to technician
-    await sendTechnicianAssignmentEmail(
-      complaint,
-      technician
-    );
+    // In-app notification → Supervisor
+    await createNotification({
+      recipient: supervisor._id,
+      title: "New Complaint Assigned",
+      message:
+        `A complaint from ${complaint.block}, Room ${complaint.room} has been assigned to you.`,
+      type: "supervisor_assigned",
+      complaint: complaint._id,
+    });
 
     res.json({
-      message: "Complaint assigned successfully",
+      message: "Complaint assigned to supervisor successfully",
       complaint,
     });
   } catch (error) {
@@ -376,10 +483,15 @@ const assignComplaint = async (req, res) => {
   }
 };
 
-// Delete Complaint
+// =====================================================
+// DELETE COMPLAINT
+// =====================================================
+
 const deleteComplaint = async (req, res) => {
   try {
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findById(
+      req.params.id
+    );
 
     if (!complaint) {
       return res.status(404).json({
@@ -400,7 +512,10 @@ const deleteComplaint = async (req, res) => {
   }
 };
 
-// Upload Completion Photo
+// =====================================================
+// UPLOAD COMPLETION PHOTO
+// =====================================================
+
 const uploadCompletionPhoto = async (req, res) => {
   try {
     const { completionImage } = req.body;
@@ -426,7 +541,8 @@ const uploadCompletionPhoto = async (req, res) => {
 
     if (!complaint) {
       return res.status(404).json({
-        message: "Complaint not found or not assigned to you",
+        message:
+          "Complaint not found or not assigned to you",
       });
     }
 
@@ -444,7 +560,10 @@ const uploadCompletionPhoto = async (req, res) => {
   }
 };
 
-// Submit Feedback
+// =====================================================
+// SUBMIT FEEDBACK
+// =====================================================
+
 const submitFeedback = async (req, res) => {
   try {
     const { rating, comment } = req.body;
@@ -468,7 +587,8 @@ const submitFeedback = async (req, res) => {
 
     if (complaint.status !== "Resolved") {
       return res.status(400).json({
-        message: "Feedback can be given only after complaint is resolved",
+        message:
+          "Feedback can be given only after complaint is resolved",
       });
     }
 
@@ -479,7 +599,8 @@ const submitFeedback = async (req, res) => {
     }
 
     complaint.feedbackRating = Number(rating);
-    complaint.feedbackComment = comment?.trim() || "";
+    complaint.feedbackComment =
+      comment?.trim() || "";
 
     await complaint.save();
 
@@ -496,6 +617,10 @@ const submitFeedback = async (req, res) => {
     });
   }
 };
+
+// =====================================================
+// EXPORTS
+// =====================================================
 
 module.exports = {
   createComplaint,

@@ -1,5 +1,5 @@
+
 const User = require("../models/User");
-const Student = require("../models/Student");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -7,6 +7,32 @@ const {
   sendVerificationOTP,
   sendPasswordResetOTP,
 } = require("../services/emailService");
+
+// ================= OTP GENERATOR =================
+
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// ================= PASSWORD VALIDATION =================
+
+const validateStrongPassword = (password) => {
+  if (!password) return false;
+
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  return (
+    hasMinLength &&
+    hasUpper &&
+    hasLower &&
+    hasNumber &&
+    hasSpecial
+  );
+};
 
 // ================= CHANGE PASSWORD =================
 
@@ -20,13 +46,14 @@ const changePassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 6) {
+    if (!validateStrongPassword(newPassword)) {
       return res.status(400).json({
-        message: "New password must be at least 6 characters long",
+        message:
+          "New password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.",
       });
     }
 
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.user.userId).select("+password");
 
     if (!user) {
       return res.status(404).json({
@@ -60,28 +87,29 @@ const changePassword = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Password changed successfully",
     });
   } catch (error) {
     console.error("CHANGE PASSWORD ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Server error while changing password",
     });
   }
 };
 
-// ================= REGISTER =================
+// ================= REGISTER / START REGISTRATION =================
 
 const registerUser = async (req, res) => {
   try {
     const {
       name,
       email,
-      password,
+      phoneNumber,
       classSection,
       enrollmentNumber,
+      enrollmentYear,
       department,
       semester,
     } = req.body;
@@ -91,7 +119,7 @@ const registerUser = async (req, res) => {
     if (
       !name ||
       !email ||
-      !password ||
+      !phoneNumber ||
       !classSection ||
       !enrollmentNumber ||
       !department ||
@@ -102,16 +130,36 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // ================= COLLEGE EMAIL CHECK =================
+    // ================= NORMALIZE DATA =================
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const normalizedEnrollment =
-      enrollmentNumber.trim().toUpperCase();
+    const normalizedEnrollment = enrollmentNumber
+      .trim()
+      .toUpperCase();
+
+    const normalizedPhone = phoneNumber
+      .toString()
+      .replace(/\s+/g, "")
+      .trim();
+
+    const normalizedName = name.trim();
+    const normalizedDepartment = department.trim();
+    const normalizedClassSection = classSection.trim();
+
+    // ================= COLLEGE EMAIL CHECK =================
 
     if (!normalizedEmail.endsWith("@medicaps.ac.in")) {
       return res.status(400).json({
         message: "Please use your Medi-Caps college email.",
+      });
+    }
+
+    // ================= PHONE CHECK =================
+
+    if (!/^[6-9]\d{9}$/.test(normalizedPhone)) {
+      return res.status(400).json({
+        message: "Please enter a valid 10-digit Indian mobile number.",
       });
     }
 
@@ -123,87 +171,105 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // ================= SEMESTER CHECK =================
+
+    const numericSemester = Number(semester);
+
+    if (
+      !Number.isInteger(numericSemester) ||
+      numericSemester < 1 ||
+      numericSemester > 8
+    ) {
+      return res.status(400).json({
+        message: "Semester must be between 1 and 8.",
+      });
+    }
+
     // ================= CHECK EXISTING ACCOUNT =================
 
     const existingUser = await User.findOne({
       $or: [
         { email: normalizedEmail },
         { enrollmentNumber: normalizedEnrollment },
+        { phoneNumber: normalizedPhone },
       ],
-    });
+    }).select(
+      "+emailOTP +emailOTPExpires"
+    );
 
-    if (existingUser) {
-      if (existingUser.isVerified) {
-        return res.status(400).json({
-          message: "Student account already exists.",
-        });
-      }
+    // ================= EXISTING VERIFIED ACCOUNT =================
 
-      // Existing unverified account → send new OTP
-
-      const otp = Math.floor(
-        100000 + Math.random() * 900000
-      ).toString();
-
-      existingUser.verificationOTP = otp;
-
-      existingUser.verificationOTPExpires = new Date(
-        Date.now() + 10 * 60 * 1000
-      );
-
-      await existingUser.save();
-
-      await sendVerificationOTP(normalizedEmail, otp);
-
-      return res.status(200).json({
-        message: "OTP sent to your college email.",
-        email: normalizedEmail,
+    if (existingUser && existingUser.isVerified) {
+      return res.status(400).json({
+        message: "An account already exists with these details.",
       });
     }
 
-    // ================= HASH PASSWORD =================
+    // ================= CREATE / UPDATE PENDING USER =================
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = generateOTP();
 
-    // ================= GENERATE OTP =================
+    if (existingUser) {
+      // Existing incomplete registration
+      existingUser.name = normalizedName;
+      existingUser.email = normalizedEmail;
+      existingUser.phoneNumber = normalizedPhone;
+      existingUser.enrollmentNumber = normalizedEnrollment;
+      existingUser.department = normalizedDepartment;
+      existingUser.semester = numericSemester;
+      existingUser.classSection = normalizedClassSection;
 
-    const otp = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+      if (enrollmentYear) {
+        existingUser.enrollmentYear =
+          enrollmentYear.toString().trim();
+      }
 
-    // ================= CREATE USER =================
+      existingUser.emailOTP = otp;
 
-    const user = await User.create({
-      name: name.trim(),
-      email: normalizedEmail,
-      password: hashedPassword,
-
-      role: "student",
-
-      enrollmentNumber: normalizedEnrollment,
-      department: department.trim(),
-      semester: Number(semester),
-      classSection: classSection.trim(),
-
-      verificationOTP: otp,
-
-      verificationOTPExpires: new Date(
+      existingUser.emailOTPExpires = new Date(
         Date.now() + 10 * 60 * 1000
-      ),
+      );
 
-      isVerified: false,
-    });
+      existingUser.registrationEmailVerified = false;
+      existingUser.isVerified = false;
 
-    // ================= SEND OTP =================
+      await existingUser.save();
+    } else {
+      const userData = {
+        name: normalizedName,
+        email: normalizedEmail,
+        phoneNumber: normalizedPhone,
+        enrollmentNumber: normalizedEnrollment,
+        department: normalizedDepartment,
+        semester: numericSemester,
+        classSection: normalizedClassSection,
+        role: "student",
+        isVerified: false,
+        registrationEmailVerified: false,
+        emailOTP: otp,
+        emailOTPExpires: new Date(
+          Date.now() + 10 * 60 * 1000
+        ),
+      };
+
+      if (enrollmentYear) {
+        userData.enrollmentYear =
+          enrollmentYear.toString().trim();
+      }
+
+      await User.create(userData);
+    }
+
+    // ================= SEND EMAIL OTP =================
 
     await sendVerificationOTP(normalizedEmail, otp);
 
-    return res.status(201).json({
-      message: "Account created. OTP sent to your college email.",
-      email: user.email,
+    return res.status(200).json({
+      message: "Verification OTP sent to your email.",
+      email: normalizedEmail,
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("REGISTRATION ERROR:", error);
 
     return res.status(500).json({
       message: "Registration failed",
@@ -212,7 +278,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-// ================= VERIFY OTP =================
+// ================= VERIFY EMAIL OTP =================
 
 const verifyOTP = async (req, res) => {
   try {
@@ -224,54 +290,173 @@ const verifyOTP = async (req, res) => {
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedOTP = otp.trim();
+
     const user = await User.findOne({
-      email: email.trim().toLowerCase(),
-    }).select("+verificationOTP +verificationOTPExpires");
+      email: normalizedEmail,
+    }).select(
+      "+emailOTP +emailOTPExpires"
+    );
 
     if (!user) {
       return res.status(404).json({
-        message: "User not found",
+        message:
+          "Registration not found. Please register again.",
       });
     }
 
+    // Already completed account
     if (user.isVerified) {
       return res.status(400).json({
-        message: "Email is already verified",
+        message: "Account is already verified.",
       });
     }
 
-    if (!user.verificationOTP || !user.verificationOTPExpires) {
+    // ================= OTP CHECK =================
+
+    if (!user.emailOTP || !user.emailOTPExpires) {
       return res.status(400).json({
-        message: "OTP not found. Please register again.",
+        message:
+          "Verification OTP not found. Please register again.",
       });
     }
 
-    if (user.verificationOTPExpires < new Date()) {
+    if (user.emailOTPExpires < new Date()) {
       return res.status(400).json({
-        message: "OTP has expired. Please register again.",
+        message:
+          "Verification OTP has expired. Please register again.",
       });
     }
 
-    if (user.verificationOTP !== otp) {
+    if (user.emailOTP !== normalizedOTP) {
       return res.status(400).json({
-        message: "Invalid OTP",
+        message: "Invalid verification OTP.",
       });
     }
 
-    user.isVerified = true;
-    user.verificationOTP = undefined;
-    user.verificationOTPExpires = undefined;
+    // ================= EMAIL VERIFIED =================
+
+    user.registrationEmailVerified = true;
+
+    user.emailOTP = undefined;
+    user.emailOTPExpires = undefined;
 
     await user.save();
 
-    res.json({
-      message: "Email verified successfully",
+    return res.status(200).json({
+      message:
+        "Email verified successfully. Please create your password.",
+      email: user.email,
     });
   } catch (error) {
-    console.error("OTP verification error:", error);
+    console.error("EMAIL OTP VERIFICATION ERROR:", error);
 
-    res.status(500).json({
-      message: "OTP verification failed",
+    return res.status(500).json({
+      message: "Email OTP verification failed",
+      error: error.message,
+    });
+  }
+};
+
+// ================= COMPLETE REGISTRATION =================
+
+const completeRegistration = async (req, res) => {
+  try {
+    const {
+      email,
+      password,
+      confirmPassword,
+    } = req.body;
+
+    // ================= REQUIRED FIELDS =================
+
+    if (!email || !password || !confirmPassword) {
+      return res.status(400).json({
+        message:
+          "Email, password and confirm password are required",
+      });
+    }
+
+    // ================= NORMALIZE EMAIL =================
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // ================= PASSWORD MATCH =================
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        message: "Passwords do not match.",
+      });
+    }
+
+    // ================= STRONG PASSWORD =================
+
+    if (!validateStrongPassword(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.",
+      });
+    }
+
+    // ================= FIND PENDING USER =================
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    }).select("+password");
+
+    if (!user) {
+      return res.status(404).json({
+        message:
+          "Registration not found. Please register again.",
+      });
+    }
+
+    // ================= CHECK OTP VERIFICATION =================
+
+    if (!user.registrationEmailVerified) {
+      return res.status(403).json({
+        message:
+          "Please verify your college email before creating your password.",
+      });
+    }
+
+    // ================= ALREADY VERIFIED =================
+
+    if (user.isVerified) {
+      return res.status(400).json({
+        message: "Account has already been created.",
+      });
+    }
+
+    // ================= HASH PASSWORD =================
+
+    user.password = await bcrypt.hash(password, 10);
+
+    // ================= COMPLETE ACCOUNT =================
+
+    user.isVerified = true;
+    user.registrationEmailVerified = true;
+
+    await user.save();
+
+    return res.status(201).json({
+      message:
+        "Account created successfully. You can now login.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        classSection: user.classSection,
+      },
+    });
+  } catch (error) {
+    console.error("COMPLETE REGISTRATION ERROR:", error);
+
+    return res.status(500).json({
+      message: "Failed to complete registration",
       error: error.message,
     });
   }
@@ -293,7 +478,9 @@ const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({
       email: normalizedEmail,
-    }).select("+resetPasswordOTP +resetPasswordOTPExpires");
+    }).select(
+      "+resetPasswordOTP +resetPasswordOTPExpires"
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -301,11 +488,7 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // ================= GENERATE RESET OTP =================
-
-    const otp = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+    const otp = generateOTP();
 
     user.resetPasswordOTP = otp;
 
@@ -314,8 +497,6 @@ const forgotPassword = async (req, res) => {
     );
 
     await user.save();
-
-    // ================= SEND RESET OTP =================
 
     await sendPasswordResetOTP(normalizedEmail, otp);
 
@@ -336,7 +517,11 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const {
+      email,
+      otp,
+      newPassword,
+    } = req.body;
 
     if (!email || !otp || !newPassword) {
       return res.status(400).json({
@@ -344,9 +529,10 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 6) {
+    if (!validateStrongPassword(newPassword)) {
       return res.status(400).json({
-        message: "New password must be at least 6 characters long",
+        message:
+          "New password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character.",
       });
     }
 
@@ -364,30 +550,28 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // ================= CHECK OTP =================
-
     if (
       !user.resetPasswordOTP ||
       !user.resetPasswordOTPExpires
     ) {
       return res.status(400).json({
-        message: "Reset OTP not found. Please request a new OTP.",
+        message:
+          "Reset OTP not found. Please request a new OTP.",
       });
     }
 
     if (user.resetPasswordOTPExpires < new Date()) {
       return res.status(400).json({
-        message: "Reset OTP has expired. Please request a new OTP.",
+        message:
+          "Reset OTP has expired. Please request a new OTP.",
       });
     }
 
-    if (user.resetPasswordOTP !== otp) {
+    if (user.resetPasswordOTP !== otp.trim()) {
       return res.status(400).json({
         message: "Invalid reset OTP",
       });
     }
-
-    // ================= CHECK SAME PASSWORD =================
 
     const isSamePassword = await bcrypt.compare(
       newPassword,
@@ -396,15 +580,12 @@ const resetPassword = async (req, res) => {
 
     if (isSamePassword) {
       return res.status(400).json({
-        message: "New password must be different from current password",
+        message:
+          "New password must be different from current password",
       });
     }
 
-    // ================= HASH NEW PASSWORD =================
-
     user.password = await bcrypt.hash(newPassword, 10);
-
-    // ================= CLEAR RESET OTP =================
 
     user.resetPasswordOTP = undefined;
     user.resetPasswordOTPExpires = undefined;
@@ -412,7 +593,8 @@ const resetPassword = async (req, res) => {
     await user.save();
 
     return res.status(200).json({
-      message: "Password reset successfully. You can now login.",
+      message:
+        "Password reset successfully. You can now login.",
     });
   } catch (error) {
     console.error("RESET PASSWORD ERROR:", error);
@@ -429,6 +611,12 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     const user = await User.findOne({
@@ -441,9 +629,11 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Student must complete the entire registration.
     if (user.role === "student" && !user.isVerified) {
       return res.status(403).json({
-        message: "Please verify your email before logging in",
+        message:
+          "Please complete your registration before logging in.",
       });
     }
 
@@ -469,21 +659,26 @@ const loginUser = async (req, res) => {
       }
     );
 
-    res.json({
+    return res.json({
       message: "Login successful",
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        phoneNumber: user.phoneNumber,
+        enrollmentNumber: user.enrollmentNumber,
+        department: user.department,
+        semester: user.semester,
         classSection: user.classSection,
-      },
+        role: user.role,
+        assignedBlocks: user.assignedBlocks || [],
+      }
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("LOGIN ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Login failed",
       error: error.message,
     });
@@ -495,6 +690,7 @@ const loginUser = async (req, res) => {
 module.exports = {
   registerUser,
   verifyOTP,
+  completeRegistration,
   loginUser,
   changePassword,
   forgotPassword,

@@ -1,7 +1,395 @@
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+
+// ================= CAMPUS BLOCK LIST =================
+// Medi-Caps University campus blocks — single source of truth for the form
+const CAMPUS_BLOCKS = [
+  "A Block",
+  "B Block",
+  "C Block",
+  "D Block",
+  "E Block",
+  "F Block",
+  "G Block",
+  "H Block",
+  "I Block",
+  "J Block",
+  "K Block",
+  "L Block",
+  "M Block",
+  "N Block",
+  "O Block",
+  "P Block",
+  "Q Block",
+  "R Block",
+  "S Block",
+  "T Block",
+  "U Block",
+  "V Block",
+  "W Block",
+  "X Block",
+  "Y Block",
+  "Z Block",
+
+];
+
+// ================= CAMPUS BLOCK, FLOOR & ROOM CONFIGURATION =================
+
+const generateRooms = (start, end) => {
+  const rooms = [];
+  for (let i = start; i <= end; i++) {
+    rooms.push(`Room ${i}`);
+  }
+  return rooms;
+};
+
+// Explicit floor & room mappings for blocks with defined structures
+const BLOCK_FLOOR_ROOM_DATA = {
+  "A Block": [
+    { floor: "A1", rooms: generateRooms(1, 10) },
+    { floor: "A2", rooms: generateRooms(11, 20) },
+    { floor: "A3", rooms: generateRooms(21, 30) },
+    { floor: "A4", rooms: generateRooms(31, 40) },
+  ],
+  "B Block": [
+    { floor: "B1", rooms: generateRooms(1, 15) },
+    { floor: "B2", rooms: generateRooms(16, 30) },
+    { floor: "B3", rooms: generateRooms(31, 45) },
+    { floor: "B4", rooms: generateRooms(46, 60) },
+  ],
+  "C Block": [
+    { floor: "C1", rooms: generateRooms(1, 5) },
+    { floor: "C2", rooms: generateRooms(6, 10) },
+  ],
+  "D Block": [
+    { floor: "D1", rooms: generateRooms(1, 20) },
+    { floor: "D2", rooms: generateRooms(21, 40) },
+    { floor: "D3", rooms: generateRooms(41, 60) },
+    { floor: "D4", rooms: generateRooms(61, 80) },
+  ],
+  "V Block": [
+    { floor: "V1", rooms: generateRooms(1, 10) },
+    { floor: "V2", rooms: generateRooms(11, 20) },
+    { floor: "V3", rooms: generateRooms(21, 30) },
+    { floor: "V4", rooms: generateRooms(31, 40) },
+    { floor: "V5", rooms: generateRooms(41, 50) },
+  ]
+};
+
+function getBlockFloorsAndRooms(blockName) {
+  if (!blockName) return [];
+  if (BLOCK_FLOOR_ROOM_DATA[blockName]) {
+    return BLOCK_FLOOR_ROOM_DATA[blockName];
+  }
+
+  // Derive floor prefix for any block (e.g., "E Block" -> "E", "Z Block" -> "Z", "AB Block" -> "AB")
+  let prefix = "";
+  const match = blockName.match(/^([A-Za-z]+)\s*Block$/i);
+  if (match) {
+    prefix = match[1].toUpperCase();
+  } else {
+    const words = blockName.split(/\s+/);
+    prefix = words.map((w) => w[0].toUpperCase()).join("");
+  }
+
+  // Sensible default: 4 floors with 10 rooms each
+  return [
+    { floor: `${prefix}1`, rooms: generateRooms(1, 10) },
+    { floor: `${prefix}2`, rooms: generateRooms(11, 20) },
+    { floor: `${prefix}3`, rooms: generateRooms(21, 30) },
+    { floor: `${prefix}4`, rooms: generateRooms(31, 40) },
+  ];
+}
+
+// ================= REUSABLE SEARCHABLE DROPDOWN COMPONENT =================
+
+function SearchableDropdown({
+  id,
+  label,
+  required = false,
+  value,
+  onChange,
+  options = [],
+  placeholder = "Search or select...",
+  searchPlaceholder = "Search...",
+  disabled = false,
+  disabledPlaceholder = "Select previous field first...",
+  emptyMessage = "No options found",
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef(null);
+  const searchRef = useRef(null);
+
+  const filtered = options.filter((item) =>
+    item.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Close on click outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Auto-focus search when dropdown opens
+  useEffect(() => {
+    if (open && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [open]);
+
+  // Close when disabled becomes true
+  useEffect(() => {
+    if (disabled) {
+      setOpen(false);
+      setSearch("");
+    }
+  }, [disabled]);
+
+  const handleSelect = (item) => {
+    onChange(item);
+    setOpen(false);
+    setSearch("");
+  };
+
+  const handleToggle = () => {
+    if (disabled) return;
+    setOpen((prev) => !prev);
+    if (!open) setSearch("");
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <label className="mb-2 block text-sm font-bold text-slate-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+
+      {/* Trigger button */}
+      <button
+        type="button"
+        id={id}
+        onClick={handleToggle}
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={[
+          "flex w-full items-center justify-between rounded-xl border px-3.5 py-3.5 text-sm outline-none transition text-left",
+          disabled
+            ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-75"
+            : open
+              ? "border-indigo-500 bg-white ring-4 ring-indigo-100 cursor-pointer"
+              : "border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-white cursor-pointer",
+          value && !disabled ? "font-medium text-slate-800" : "text-slate-400",
+        ].join(" ")}
+      >
+        <span className="flex items-center gap-2 truncate">
+          <span className="shrink-0 text-slate-400 text-xs">🔍</span>
+          <span className="truncate">
+            {value || (disabled ? disabledPlaceholder : placeholder)}
+          </span>
+        </span>
+        <span
+          className="ml-2 shrink-0 text-slate-400 text-xs"
+          style={{
+            display: "inline-block",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s ease",
+          }}
+        >
+          &#9662;
+        </span>
+      </button>
+
+      {/* Dropdown panel */}
+      {open && !disabled && (
+        <div
+          role="listbox"
+          aria-label={label}
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            zIndex: 999,
+            background: "#fff",
+            border: "1.5px solid #e0e7ff",
+            borderRadius: "16px",
+            boxShadow:
+              "0 8px 32px 0 rgba(99,102,241,0.13), 0 2px 8px 0 rgba(0,0,0,0.07)",
+            overflow: "hidden",
+            animation: "cf-dropdown-in 0.18s cubic-bezier(.4,0,.2,1)",
+          }}
+        >
+          {/* Search box */}
+          <div
+            style={{
+              padding: "10px 12px 8px",
+              borderBottom: "1px solid #f1f5f9",
+              background: "#f8faff",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "#fff",
+                border: "1.5px solid #c7d2fe",
+                borderRadius: "10px",
+                padding: "7px 12px",
+              }}
+            >
+              <span style={{ fontSize: "14px", color: "#818cf8" }}>
+                &#128269;
+              </span>
+              <input
+                ref={searchRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder}
+                style={{
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  fontSize: "13px",
+                  color: "#334155",
+                  width: "100%",
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#94a3b8",
+                    fontSize: "13px",
+                    padding: 0,
+                    lineHeight: 1,
+                  }}
+                  aria-label="Clear search"
+                >
+                  &#x2715;
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Options list */}
+          <ul
+            style={{
+              maxHeight: "220px",
+              overflowY: "auto",
+              margin: 0,
+              padding: "6px 0",
+              listStyle: "none",
+            }}
+          >
+            {filtered.length === 0 ? (
+              <li
+                style={{
+                  padding: "14px 16px",
+                  textAlign: "center",
+                  color: "#94a3b8",
+                  fontSize: "13px",
+                }}
+              >
+                {emptyMessage}
+              </li>
+            ) : (
+              filtered.map((item) => {
+                const isSelected = value === item;
+                return (
+                  <li
+                    key={item}
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => handleSelect(item)}
+                    style={{
+                      padding: "10px 14px",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      fontWeight: isSelected ? 700 : 500,
+                      color: isSelected ? "#4f46e5" : "#334155",
+                      background: isSelected ? "#eef2ff" : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      borderRadius: "8px",
+                      margin: "1px 6px",
+                      transition: "background 0.12s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected)
+                        e.currentTarget.style.background = "#f8faff";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected)
+                        e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <span className="truncate">{item}</span>
+                    {isSelected && (
+                      <span
+                        style={{
+                          color: "#4f46e5",
+                          fontSize: "13px",
+                          fontWeight: 800,
+                          marginLeft: "6px",
+                        }}
+                      >
+                        &#10003;
+                      </span>
+                    )}
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </div>
+      )}
+
+      {/* Dropdown open animation */}
+      <style>{`
+        @keyframes cf-dropdown-in {
+          from { opacity: 0; transform: translateY(-6px) scaleY(0.97); }
+          to   { opacity: 1; transform: translateY(0)   scaleY(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Backward compatibility wrapper
+function BlockDropdown(props) {
+  return (
+    <SearchableDropdown
+      id="block-dropdown-trigger"
+      label="Block"
+      required
+      options={CAMPUS_BLOCKS}
+      placeholder="Search or select block..."
+      searchPlaceholder="Search block..."
+      emptyMessage="No blocks found"
+      {...props}
+    />
+  );
+}
 
 function ComplaintForm() {
   const navigate = useNavigate();
@@ -10,11 +398,16 @@ function ComplaintForm() {
 
   const [formData, setFormData] = useState({
     block: "",
+    floor: "",
     room: "",
+    mobileNumber: user?.phoneNumber || "",
     category: "",
     description: "",
     priority: "Medium",
   });
+
+  const [mobileTouched, setMobileTouched] = useState(false);
+  const isMobileValid = /^[0-9]{10}$/.test(formData.mobileNumber);
 
   const [image, setImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -25,6 +418,51 @@ function ComplaintForm() {
   const [alreadySupported, setAlreadySupported] = useState(false);
   const [supporting, setSupporting] = useState(false);
 
+  // Dependent options
+  const availableFloorsData = getBlockFloorsAndRooms(formData.block);
+  const availableFloors = availableFloorsData.map((f) => f.floor);
+  const currentFloorData = availableFloorsData.find(
+    (f) => f.floor === formData.floor
+  );
+  const availableRooms = currentFloorData ? currentFloorData.rooms : [];
+
+  // Dependent selection handlers
+  const handleBlockChange = (selectedBlock) => {
+    setFormData((prev) => ({
+      ...prev,
+      block: selectedBlock,
+      floor: "",
+      room: "",
+    }));
+  };
+
+  const handleFloorChange = (selectedFloor) => {
+    setFormData((prev) => ({
+      ...prev,
+      floor: selectedFloor,
+      room: "",
+    }));
+  };
+
+  const handleRoomChange = (selectedRoom) => {
+    setFormData((prev) => ({
+      ...prev,
+      room: selectedRoom,
+    }));
+  };
+
+  const handleMobileChange = (e) => {
+    // Only accept numeric digits, up to 10 digits
+    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+    setFormData((prev) => ({
+      ...prev,
+      mobileNumber: cleaned,
+    }));
+    if (!mobileTouched) {
+      setMobileTouched(true);
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -33,28 +471,64 @@ function ComplaintForm() {
   };
 
   const resetForm = () => {
-    setFormData({
+    const [formData, setFormData] = useState({
       block: "",
+      floor: "",
       room: "",
+      mobileNumber: user?.phoneNumber || "",
       category: "",
       description: "",
       priority: "Medium",
     });
 
+    setMobileTouched(false);
     setImage(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate mobile number
+    if (!formData.mobileNumber || !/^[0-9]{10}$/.test(formData.mobileNumber)) {
+      setMobileTouched(true);
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
     // Validate required fields
     if (!formData.block.trim()) {
-      alert("Please enter the block.");
+      alert("Please select a block.");
+      return;
+    }
+
+    if (!formData.floor.trim()) {
+      alert("Please select a floor.");
       return;
     }
 
     if (!formData.room.trim()) {
-      alert("Please enter the room number.");
+      alert("Please select a room.");
+      return;
+    }
+
+    // Verify valid block + floor + room combinations
+    const validFloors = getBlockFloorsAndRooms(formData.block).map(
+      (f) => f.floor
+    );
+    if (!validFloors.includes(formData.floor)) {
+      alert(
+        `Invalid floor "${formData.floor}" for ${formData.block}. Please select a valid floor.`
+      );
+      return;
+    }
+
+    const floorObj = getBlockFloorsAndRooms(formData.block).find(
+      (f) => f.floor === formData.floor
+    );
+    if (!floorObj || !floorObj.rooms.includes(formData.room)) {
+      alert(
+        `Invalid room "${formData.room}" for floor ${formData.floor}. Please select a valid room.`
+      );
       return;
     }
 
@@ -132,7 +606,7 @@ function ComplaintForm() {
         setDuplicateComplaint(duplicateData.complaint);
         setDuplicateMessage(
           duplicateData.message ||
-            "A similar active complaint already exists."
+          "A similar active complaint already exists."
         );
         setAlreadySupported(
           duplicateData.alreadySupported || false
@@ -143,8 +617,8 @@ function ComplaintForm() {
 
       alert(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to submit complaint"
+        error.message ||
+        "Failed to submit complaint"
       );
     } finally {
       setSubmitting(false);
@@ -184,7 +658,7 @@ function ComplaintForm() {
     } catch (error) {
       alert(
         error.response?.data?.message ||
-          "Failed to support complaint"
+        "Failed to support complaint"
       );
     } finally {
       setSupporting(false);
@@ -324,6 +798,48 @@ function ComplaintForm() {
                   </div>
                 </div>
               </div>
+
+              {/* Mobile Number */}
+              <div className="mt-4 pt-4 border-t border-indigo-100">
+                <div className="max-w-md">
+                  <label className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Mobile Number <span className="text-red-500">*</span>
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      name="mobileNumber"
+                      value={formData.mobileNumber}
+                      readOnly
+                      maxLength={10}
+                      required
+                      className={`w-full rounded-xl border bg-slate-50 px-4 py-3.5 text-sm outline-none ${isMobileValid
+                        ? "border-emerald-400"
+                        : "border-slate-300"
+                        }`}
+                    />
+
+                    {isMobileValid && (
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-extrabold text-emerald-600 flex items-center gap-1">
+                        <span>✓</span>
+                        <span className="text-xs font-semibold text-emerald-700">Valid</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {mobileTouched && !isMobileValid ? (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                      <span>✗</span>
+                      <span>Please enter a valid 10-digit mobile number.</span>
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      Administration/technician will use this number to contact you regarding the problem.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* ================= LOCATION ================= */}
@@ -344,38 +860,49 @@ function ComplaintForm() {
                 </div>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                {/* Block */}
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-700">
-                    Block
-                  </label>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {/* 1. Block Selection */}
+                <SearchableDropdown
+                  id="block-select"
+                  label="Block"
+                  required
+                  value={formData.block}
+                  onChange={handleBlockChange}
+                  options={CAMPUS_BLOCKS}
+                  placeholder="Search or select block..."
+                  searchPlaceholder="Search block..."
+                  emptyMessage="No blocks found"
+                />
 
-                  <input
-                    name="block"
-                    placeholder="e.g. V Block"
-                    value={formData.block}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                  />
-                </div>
+                {/* 2. Floor Selection */}
+                <SearchableDropdown
+                  id="floor-select"
+                  label="Floor"
+                  required
+                  value={formData.floor}
+                  onChange={handleFloorChange}
+                  options={availableFloors}
+                  placeholder="Search or select floor..."
+                  searchPlaceholder="Search floor..."
+                  disabled={!formData.block}
+                  disabledPlaceholder="Select block first..."
+                  emptyMessage="No floors available"
+                />
 
-                {/* Room */}
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-700">
-                    Room Number
-                  </label>
-
-                  <input
-                    name="room"
-                    placeholder="e.g. 304"
-                    value={formData.room}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                  />
-                </div>
+                {/* 3. Room Selection */}
+                <SearchableDropdown
+                  id="room-select"
+                  label="Room"
+                  required
+                  value={formData.room}
+                  onChange={handleRoomChange}
+                  options={availableRooms}
+                  placeholder="Search or select room..."
+                  searchPlaceholder="Search room..."
+                  disabled={!formData.floor}
+                  disabledPlaceholder="Select floor first..."
+                  emptyMessage="No rooms available"
+                />
               </div>
             </div>
 
@@ -649,8 +1176,14 @@ function ComplaintForm() {
 
                     <p className="mt-1 font-bold text-slate-700">
                       {duplicateComplaint.block}
+                      {duplicateComplaint.floor
+                        ? ` • Floor ${duplicateComplaint.floor}`
+                        : ""}
                       {duplicateComplaint.room
-                        ? ` • Room ${duplicateComplaint.room}`
+                        ? ` • ${duplicateComplaint.room.startsWith("Room")
+                          ? duplicateComplaint.room
+                          : `Room ${duplicateComplaint.room}`
+                        }`
                         : ""}
                     </p>
                   </div>

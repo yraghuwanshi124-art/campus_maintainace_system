@@ -1,10 +1,10 @@
+
 const express = require("express");
 
 const {
   getTechnicians,
   createTechnician,
   deleteTechnician,
-  createDefaultTechnicians,
 } = require("../controllers/technicianController");
 
 const protect = require("../middleware/authMiddleware");
@@ -12,36 +12,37 @@ const allowRoles = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-// Get all technicians
+// =====================================================
+// SUPERVISOR - GET TECHNICIANS
+// =====================================================
+
 router.get(
   "/",
   protect,
-  allowRoles("admin"),
+  allowRoles("supervisor"),
   getTechnicians
 );
 
-// Add single technician
+// =====================================================
+// SUPERVISOR - ADD TECHNICIAN
+// =====================================================
+
 router.post(
   "/",
   protect,
-  allowRoles("admin"),
+  allowRoles("supervisor"),
   createTechnician
 );
 
-// Delete technician
+// =====================================================
+// SUPERVISOR - DELETE TECHNICIAN
+// =====================================================
+
 router.delete(
   "/:id",
   protect,
-  allowRoles("admin"),
+  allowRoles("supervisor"),
   deleteTechnician
-);
-
-// Create default technicians
-router.post(
-  "/create-default",
-  protect,
-  allowRoles("admin"),
-  createDefaultTechnicians
 );
 
 module.exports = router;

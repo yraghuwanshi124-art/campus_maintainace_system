@@ -49,7 +49,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://campus-maintainace-system.onrender.com/api",
+  baseURL: "https://campus-maintainace-system-1.onrender.com/api",
 });
 
 // Attach JWT token to every protected request

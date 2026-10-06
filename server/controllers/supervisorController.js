@@ -2,13 +2,26 @@
 const User = require("../models/User");
 const Complaint = require("../models/Complaint");
 const bcrypt = require("bcryptjs");
+
 const {
   createNotification,
 } = require("../utils/notificationService");
 
-// =====================================================
+// ======================================================
+// CATEGORY → TECHNICIAN SPECIALIZATION
+// ======================================================
+
+const specializationMap = {
+  Computer: "Computer Technician",
+  Fan: "Electrician",
+  Light: "Electrician",
+  AC: "AC Technician",
+  Door: "Carpenter",
+};
+
+// ======================================================
 // CREATE SUPERVISOR - ADMIN ONLY
-// =====================================================
+// ======================================================
 
 const createSupervisor = async (req, res) => {
   try {
@@ -40,11 +53,15 @@ const createSupervisor = async (req, res) => {
 
     if (existingUser) {
       return res.status(400).json({
-        message: "An account already exists with this email.",
+        message:
+          "An account already exists with this email.",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      10
+    );
 
     const supervisor = await User.create({
       name: name.trim(),
@@ -59,91 +76,131 @@ const createSupervisor = async (req, res) => {
     });
 
     return res.status(201).json({
-      message: "Supervisor created successfully.",
+      message:
+        "Supervisor created successfully.",
+
       supervisor: {
         id: supervisor._id,
         name: supervisor.name,
         email: supervisor.email,
         role: supervisor.role,
-        assignedBlocks: supervisor.assignedBlocks,
+        assignedBlocks:
+          supervisor.assignedBlocks,
       },
     });
   } catch (error) {
-    console.error("CREATE SUPERVISOR ERROR:", error);
+    console.error(
+      "CREATE SUPERVISOR ERROR:",
+      error
+    );
 
     return res.status(500).json({
-      message: "Failed to create supervisor.",
+      message:
+        "Failed to create supervisor.",
       error: error.message,
     });
   }
 };
 
-// =====================================================
+// ======================================================
 // GET SUPERVISORS - ADMIN ONLY
-// =====================================================
+// ======================================================
 
 const getSupervisors = async (req, res) => {
   try {
-    const admin = await User.findById(req.user.userId);
+    const admin = await User.findById(
+      req.user.userId
+    );
 
     if (!admin || admin.role !== "admin") {
       return res.status(403).json({
-        message: "Access denied. Admin only.",
+        message:
+          "Access denied. Admin only.",
       });
     }
 
+    // Supervisor is common for the whole college.
+    // Therefore, do not filter by Admin block.
+
     const supervisors = await User.find({
       role: "supervisor",
-      assignedBlocks: {
-        $in: admin.assignedBlocks || [],
-      },
-    }).select("name email assignedBlocks");
+    }).select(
+      "name email assignedBlocks"
+    );
 
-    res.json({
+    return res.json({
       supervisors,
     });
   } catch (error) {
-    console.error("GET SUPERVISORS ERROR:", error);
+    console.error(
+      "GET SUPERVISORS ERROR:",
+      error
+    );
 
-    res.status(500).json({
-      message: "Failed to fetch supervisors",
+    return res.status(500).json({
+      message:
+        "Failed to fetch supervisors.",
       error: error.message,
     });
   }
 };
 
-// =====================================================
-// GET SUPERVISOR COMPLAINTS - SUPERVISOR ONLY
-// =====================================================
+// ======================================================
+// GET SUPERVISOR COMPLAINTS
+// ======================================================
+// Supervisor can see complaints assigned to THIS supervisor.
+//
 // IMPORTANT:
-// Student personal information is NOT populated here.
-// Supervisor only receives maintenance-related information.
-// =====================================================
+// Student personal information is intentionally NOT selected.
+// No name, email, phone, enrollment, department,
+// semester or classSection is exposed.
+// ======================================================
 
-const getSupervisorComplaints = async (req, res) => {
+const getSupervisorComplaints = async (
+  req,
+  res
+) => {
   try {
-    const supervisor = await User.findById(req.user.userId).select(
-      "role assignedBlocks"
-    );
+    const supervisor = await User.findById(
+      req.user.userId
+    ).select("role");
 
-    if (!supervisor || supervisor.role !== "supervisor") {
+    if (
+      !supervisor ||
+      supervisor.role !== "supervisor"
+    ) {
       return res.status(403).json({
-        message: "Access denied. Supervisor only.",
+        message:
+          "Access denied. Supervisor only.",
       });
     }
 
     const complaints = await Complaint.find({
       supervisor: supervisor._id,
-      block: {
-        $in: supervisor.assignedBlocks || [],
-      },
     })
       .select(
-  "block floor room category description image completionImage priority status technician createdAt assignedAt technicianAssignedAt resolvedAt feedbackRating feedbackComment"
-)
+        [
+          "block",
+          "floor",
+          "room",
+          "category",
+          "description",
+          "image",
+          "completionImage",
+          "priority",
+          "status",
+          "technician",
+          "createdAt",
+          "assignedAt",
+          "technicianAssignedAt",
+          "resolvedAt",
+          "feedbackRating",
+          "feedbackComment",
+        ].join(" ")
+      )
       .populate(
         "technician",
-        "name email specialization assignedBlocks"
+        "name email specialization"
       )
       .sort({
         createdAt: -1,
@@ -153,89 +210,139 @@ const getSupervisorComplaints = async (req, res) => {
       complaints,
     });
   } catch (error) {
-    console.error("GET SUPERVISOR COMPLAINTS ERROR:", error);
+    console.error(
+      "GET SUPERVISOR COMPLAINTS ERROR:",
+      error
+    );
 
     return res.status(500).json({
-      message: "Failed to fetch supervisor complaints.",
+      message:
+        "Failed to fetch supervisor complaints.",
       error: error.message,
     });
   }
 };
 
-// =====================================================
-// GET TECHNICIANS - SUPERVISOR ONLY
-// =====================================================
-// Only technicians belonging to the Supervisor's block
-// are returned.
-// =====================================================
+// ======================================================
+// GET ALL COLLEGE TECHNICIANS - SUPERVISOR ONLY
+// ======================================================
+//
+// Technicians are common for the whole college.
+// There is NO block filtering.
+//
+// Only technician information required for assignment
+// is returned.
+// ======================================================
 
-const getTechniciansForSupervisor = async (req, res) => {
+const getTechniciansForSupervisor = async (
+  req,
+  res
+) => {
   try {
-    const supervisor = await User.findById(req.user.userId).select(
-      "role assignedBlocks"
-    );
+    const supervisor = await User.findById(
+      req.user.userId
+    ).select("role");
 
-    if (!supervisor || supervisor.role !== "supervisor") {
+    if (
+      !supervisor ||
+      supervisor.role !== "supervisor"
+    ) {
       return res.status(403).json({
-        message: "Access denied. Supervisor only.",
+        message:
+          "Access denied. Supervisor only.",
       });
     }
 
     const technicians = await User.find({
       role: "technician",
-      assignedBlocks: {
-        $in: supervisor.assignedBlocks || [],
-      },
     }).select(
-      "name email specialization assignedBlocks"
+      "name email specialization"
     );
 
     return res.json({
       technicians,
     });
   } catch (error) {
-    console.error("GET TECHNICIANS FOR SUPERVISOR ERROR:", error);
+    console.error(
+      "GET TECHNICIANS FOR SUPERVISOR ERROR:",
+      error
+    );
 
     return res.status(500).json({
-      message: "Failed to fetch technicians.",
+      message:
+        "Failed to fetch technicians.",
       error: error.message,
     });
   }
 };
 
-// =====================================================
+// ======================================================
 // ASSIGN TECHNICIAN - SUPERVISOR ONLY
-// =====================================================
+// ======================================================
+//
+// Technician is selected according to complaint category.
+//
+// Computer → Computer Technician
+// Fan      → Electrician
+// Light    → Electrician
+// AC       → AC Technician
+// Door     → Carpenter
+//
+// Technician block is NOT checked.
+// ======================================================
 
-const assignTechnician = async (req, res) => {
+const assignTechnician = async (
+  req,
+  res
+) => {
   try {
     const { technicianId } = req.body;
 
     if (!technicianId) {
       return res.status(400).json({
-        message: "Technician ID is required.",
+        message:
+          "Technician ID is required.",
       });
     }
 
-    const supervisor = await User.findById(req.user.userId).select(
-      "role assignedBlocks"
-    );
+    // ----------------------------------------------
+    // VERIFY SUPERVISOR
+    // ----------------------------------------------
 
-    if (!supervisor || supervisor.role !== "supervisor") {
+    const supervisor = await User.findById(
+      req.user.userId
+    ).select("role");
+
+    if (
+      !supervisor ||
+      supervisor.role !== "supervisor"
+    ) {
       return res.status(403).json({
-        message: "Access denied. Supervisor only.",
+        message:
+          "Access denied. Supervisor only.",
       });
     }
 
-    const complaint = await Complaint.findById(req.params.id);
+    // ----------------------------------------------
+    // FIND COMPLAINT
+    // ----------------------------------------------
+
+    const complaint =
+      await Complaint.findById(
+        req.params.id
+      );
 
     if (!complaint) {
       return res.status(404).json({
-        message: "Complaint not found.",
+        message:
+          "Complaint not found.",
       });
     }
 
-    // Supervisor can only manage complaints assigned to them.
+    // ----------------------------------------------
+    // CHECK SUPERVISOR OWNERSHIP
+    // ----------------------------------------------
+
     if (
       !complaint.supervisor ||
       complaint.supervisor.toString() !==
@@ -247,92 +354,183 @@ const assignTechnician = async (req, res) => {
       });
     }
 
-    // Supervisor can only manage complaints from assigned blocks.
-    if (
-      !supervisor.assignedBlocks?.includes(
-        complaint.block
-      )
-    ) {
-      return res.status(403).json({
-        message:
-          "You are not authorized to manage complaints from this block.",
-      });
-    }
+    // ----------------------------------------------
+    // RESOLVED COMPLAINT CHECK
+    // ----------------------------------------------
 
-    if (complaint.status === "Resolved") {
+    if (
+      complaint.status === "Resolved"
+    ) {
       return res.status(400).json({
         message:
           "Resolved complaint cannot be assigned again.",
       });
     }
 
-    const technician = await User.findOne({
+    // ----------------------------------------------
+    // FIND REQUIRED SPECIALIZATION
+    // ----------------------------------------------
+
+    const requiredSpecialization =
+      specializationMap[
+        complaint.category
+      ];
+
+    // ----------------------------------------------
+    // BUILD TECHNICIAN QUERY
+    // ----------------------------------------------
+
+    const technicianQuery = {
       _id: technicianId,
       role: "technician",
-      assignedBlocks: complaint.block,
-    }).select(
-      "name email specialization assignedBlocks"
-    );
+    };
+
+    // If the complaint has a known category,
+    // technician must have the correct specialization.
+
+    if (requiredSpecialization) {
+      technicianQuery.specialization =
+        requiredSpecialization;
+    }
+
+    // ----------------------------------------------
+    // FIND TECHNICIAN
+    // ----------------------------------------------
+
+    const technician =
+      await User.findOne(
+        technicianQuery
+      ).select(
+        "name email specialization"
+      );
 
     if (!technician) {
+      if (requiredSpecialization) {
+        return res.status(400).json({
+          message:
+            `Please select a technician qualified for ${complaint.category} complaints.`,
+        });
+      }
+
       return res.status(404).json({
         message:
-          "Technician not found or technician is not assigned to this block.",
+          "Technician not found.",
       });
     }
 
-complaint.technician = technician._id;
-complaint.status = "Assigned";
-complaint.technicianAssignedAt = new Date();
+    // ----------------------------------------------
+    // ASSIGN TECHNICIAN
+    // ----------------------------------------------
 
-await complaint.save();
+    complaint.technician =
+      technician._id;
 
-await createNotification({
-  recipient: technician._id,
-  title: "New Complaint Assigned",
-  message: `A ${complaint.category} complaint in ${complaint.block}, Room ${complaint.room} has been assigned to you.`,
-  type: "technician_assigned",
-  complaint: complaint._id,
-});
+    complaint.status = "Assigned";
+
+    complaint.technicianAssignedAt =
+      new Date();
+
+    await complaint.save();
+
+    // ----------------------------------------------
+    // NOTIFY TECHNICIAN
+    // ----------------------------------------------
+
+    await createNotification({
+      recipient: technician._id,
+
+      title:
+        "New Complaint Assigned",
+
+      message:
+        `A ${complaint.category} complaint in ${complaint.block}, Room ${complaint.room} has been assigned to you.`,
+
+      type: "technician_assigned",
+
+      complaint: complaint._id,
+    });
+
+    // ----------------------------------------------
+    // RESPONSE
+    // ----------------------------------------------
 
     return res.json({
       message:
         "Complaint assigned to technician successfully.",
+
       complaint: {
         _id: complaint._id,
+
         block: complaint.block,
+
+        floor: complaint.floor,
+
         room: complaint.room,
-        category: complaint.category,
-        description: complaint.description,
-        image: complaint.image,
-        priority: complaint.priority,
-        status: complaint.status,
-        supervisor: complaint.supervisor,
+
+        category:
+          complaint.category,
+
+        description:
+          complaint.description,
+
+        image:
+          complaint.image,
+
+        completionImage:
+          complaint.completionImage,
+
+        priority:
+          complaint.priority,
+
+        status:
+          complaint.status,
+
+        supervisor:
+          complaint.supervisor,
+
         technician: {
           _id: technician._id,
-          name: technician.name,
-          email: technician.email,
-          specialization: technician.specialization,
-          assignedBlocks: technician.assignedBlocks,
+
+          name:
+            technician.name,
+
+          email:
+            technician.email,
+
+          specialization:
+            technician.specialization,
         },
-createdAt: complaint.createdAt,
-assignedAt: complaint.assignedAt,
-technicianAssignedAt: complaint.technicianAssignedAt,
+
+        createdAt:
+          complaint.createdAt,
+
+        assignedAt:
+          complaint.assignedAt,
+
+        technicianAssignedAt:
+          complaint.technicianAssignedAt,
+
+        resolvedAt:
+          complaint.resolvedAt,
       },
     });
   } catch (error) {
-    console.error("ASSIGN TECHNICIAN ERROR:", error);
+    console.error(
+      "ASSIGN TECHNICIAN ERROR:",
+      error
+    );
 
     return res.status(500).json({
-      message: "Failed to assign technician.",
+      message:
+        "Failed to assign technician.",
       error: error.message,
     });
   }
 };
 
-// =====================================================
+// ======================================================
 // EXPORTS
-// =====================================================
+// ======================================================
 
 module.exports = {
   createSupervisor,

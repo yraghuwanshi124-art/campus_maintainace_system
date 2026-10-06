@@ -112,9 +112,42 @@ const markAllNotificationsAsRead = async (
     });
   }
 };
+// =====================================================
+// DELETE ONE NOTIFICATION
+// =====================================================
+
+const deleteNotification = async (req, res) => {
+  try {
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      recipient: req.user.userId,
+    });
+
+    if (!notification) {
+      return res.status(404).json({
+        message: "Notification not found.",
+      });
+    }
+
+    return res.json({
+      message: "Notification deleted successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "DELETE NOTIFICATION ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      message: "Failed to delete notification.",
+      error: error.message,
+    });
+  }
+};
 
 module.exports = {
   getMyNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteNotification,
 };

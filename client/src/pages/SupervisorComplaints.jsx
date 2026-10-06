@@ -1,10 +1,252 @@
 
+// import React, { useEffect, useState } from "react";
+// import { Bell, CheckCheck, Clock } from "lucide-react";
+// import api from "../services/api";
+// import { useNavigate } from "react-router-dom";
+
+// const Notifications = () => {
+//   const [notifications, setNotifications] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   const navigate = useNavigate();
+
+//   // --------------------------------------------------
+//   // FETCH NOTIFICATIONS
+//   // --------------------------------------------------
+//   const fetchNotifications = async () => {
+//     try {
+//       setLoading(true);
+
+//       const response = await api.get("/notifications");
+
+//       setNotifications(response.data.notifications || []);
+//     } catch (error) {
+//       console.error(
+//         "Failed to fetch notifications:",
+//         error
+//       );
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchNotifications();
+//   }, []);
+
+//   // --------------------------------------------------
+//   // MARK AS READ
+//   // --------------------------------------------------
+//   const markAsRead = async (notificationId) => {
+//     try {
+//       await api.patch(
+//         `/notifications/${notificationId}/read`
+//       );
+
+//       setNotifications((prev) =>
+//         prev.map((notification) =>
+//           notification._id === notificationId
+//             ? {
+//                 ...notification,
+//                 isRead: true,
+//               }
+//             : notification
+//         )
+//       );
+//     } catch (error) {
+//       console.error(
+//         "Failed to mark notification as read:",
+//         error
+//       );
+//     }
+//   };
+
+//   // --------------------------------------------------
+//   // OPEN RELATED COMPLAINT
+//   // --------------------------------------------------
+//   const handleNotificationClick = async (
+//     notification
+//   ) => {
+//     // Mark notification as read first
+//     if (!notification.isRead) {
+//       await markAsRead(notification._id);
+//     }
+
+//     // Try to get complaint ID from notification
+//     const complaintId =
+//       notification.complaintId ||
+//       notification.complaint?._id ||
+//       notification.data?.complaintId ||
+//       notification.metadata?.complaintId;
+
+//     // If complaint is connected to notification
+//     if (complaintId) {
+//       navigate("/supervisor/complaints", {
+//         state: {
+//           complaintId,
+//         },
+//       });
+
+//       return;
+//     }
+
+//     // If no complaint ID exists
+//     console.warn(
+//       "No complaint ID found in notification:",
+//       notification
+//     );
+//   };
+
+//   const unreadCount = notifications.filter(
+//     (notification) => !notification.isRead
+//   ).length;
+
+//   return (
+//     <div className="min-h-screen bg-slate-50 p-6">
+//       <div className="mx-auto max-w-4xl">
+
+//         {/* HEADER */}
+//         <div className="mb-6 flex items-center justify-between">
+//           <div className="flex items-center gap-3">
+//             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white">
+//               <Bell size={22} />
+//             </div>
+
+//             <div>
+//               <h1 className="text-2xl font-bold text-slate-900">
+//                 Notifications
+//               </h1>
+
+//               <p className="text-sm text-slate-500">
+//                 Stay updated with your CampusFix activities
+//               </p>
+//             </div>
+//           </div>
+
+//           {unreadCount > 0 && (
+//             <div className="rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+//               {unreadCount} Unread
+//             </div>
+//           )}
+//         </div>
+
+//         {/* LOADING */}
+//         {loading && (
+//           <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
+//             <p className="text-slate-500">
+//               Loading notifications...
+//             </p>
+//           </div>
+//         )}
+
+//         {/* EMPTY */}
+//         {!loading && notifications.length === 0 && (
+//           <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
+//             <Bell
+//               size={42}
+//               className="mx-auto mb-4 text-slate-300"
+//             />
+
+//             <h2 className="text-lg font-semibold text-slate-700">
+//               No notifications
+//             </h2>
+
+//             <p className="mt-1 text-sm text-slate-400">
+//               You're all caught up.
+//             </p>
+//           </div>
+//         )}
+
+//         {/* NOTIFICATIONS */}
+//         {!loading && notifications.length > 0 && (
+//           <div className="space-y-3">
+//             {notifications.map((notification) => (
+//               <div
+//                 key={notification._id}
+//                 onClick={() =>
+//                   handleNotificationClick(notification)
+//                 }
+//                 className={`cursor-pointer rounded-2xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+//                   notification.isRead
+//                     ? "border-slate-200 bg-white"
+//                     : "border-blue-200 bg-blue-50"
+//                 }`}
+//               >
+//                 <div className="flex gap-4">
+
+//                   {/* ICON */}
+//                   <div
+//                     className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+//                       notification.isRead
+//                         ? "bg-slate-100 text-slate-500"
+//                         : "bg-blue-600 text-white"
+//                     }`}
+//                   >
+//                     {notification.isRead ? (
+//                       <CheckCheck size={20} />
+//                     ) : (
+//                       <Bell size={20} />
+//                     )}
+//                   </div>
+
+//                   {/* CONTENT */}
+//                   <div className="min-w-0 flex-1">
+//                     <div className="flex flex-wrap items-start justify-between gap-2">
+//                       <h3 className="font-semibold text-slate-900">
+//                         {notification.title}
+//                       </h3>
+
+//                       {!notification.isRead && (
+//                         <span className="rounded-full bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white">
+//                           NEW
+//                         </span>
+//                       )}
+//                     </div>
+
+//                     <p className="mt-1 text-sm leading-6 text-slate-600">
+//                       {notification.message}
+//                     </p>
+
+//                     <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+//                       <Clock size={14} />
+
+//                       {new Date(
+//                         notification.createdAt
+//                       ).toLocaleString("en-IN")}
+//                     </div>
+
+//                     {/* RELATED COMPLAINT INDICATOR */}
+//                     {(notification.complaintId ||
+//                       notification.complaint?._id ||
+//                       notification.data?.complaintId ||
+//                       notification.metadata?.complaintId) && (
+//                       <div className="mt-3 text-xs font-semibold text-blue-600">
+//                         Click to view related complaint →
+//                       </div>
+//                     )}
+//                   </div>
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default Notifications;
+
+
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../services/api";
 import SupervisorSidebar from "../components/SupervisorSidebar";
 import LogoutModal from "../components/LogoutModal";
 
 function SupervisorComplaints() {
+  const location = useLocation();
+
   const [complaints, setComplaints] = useState([]);
   const [technicians, setTechnicians] = useState([]);
 
@@ -20,105 +262,110 @@ function SupervisorComplaints() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const [showLogout, setShowLogout] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
 
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
+  // Selected complaint coming from Dashboard / Notification
+  const selectedComplaintId = location.state?.complaintId || null;
 
+  // Read More state
+  const [expandedComplaintId, setExpandedComplaintId] = useState(null);
+
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const assignedBlocks = user?.assignedBlocks || [];
 
-  // =====================================================
+  // --------------------------------------------------
   // FETCH COMPLAINTS
-  // =====================================================
+  // --------------------------------------------------
 
   const fetchComplaints = async () => {
     try {
-      const token = localStorage.getItem("token");
+      setLoading(true);
+      setErrorMessage("");
 
-      const response = await api.get(
-        "/supervisor/complaints",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.get("/supervisor/complaints");
 
-      setComplaints(
-        response.data.complaints || []
-      );
+      setComplaints(response.data.complaints || []);
     } catch (error) {
       console.error(
         "FETCH SUPERVISOR COMPLAINTS ERROR:",
-        error.response?.data || error
+        error
       );
 
       setErrorMessage(
         error.response?.data?.message ||
-          "Failed to fetch complaints."
+          "Failed to load complaints."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
-  // =====================================================
+  // --------------------------------------------------
   // FETCH TECHNICIANS
-  // =====================================================
+  // --------------------------------------------------
 
   const fetchTechnicians = async () => {
     try {
-      const token = localStorage.getItem("token");
-
       const response = await api.get(
-        "/supervisor/technicians",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        "/supervisor/technicians"
       );
 
-      setTechnicians(
-        response.data.technicians || []
-      );
+      setTechnicians(response.data.technicians || []);
     } catch (error) {
       console.error(
-        "FETCH SUPERVISOR TECHNICIANS ERROR:",
-        error.response?.data || error
+        "FETCH TECHNICIANS ERROR:",
+        error
       );
 
       setErrorMessage(
         error.response?.data?.message ||
-          "Failed to fetch technicians."
+          "Failed to load technicians."
       );
     }
   };
 
-  // =====================================================
-  // INITIAL LOAD
-  // =====================================================
-
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-
-      await Promise.all([
-        fetchComplaints(),
-        fetchTechnicians(),
-      ]);
-
-      setLoading(false);
-    };
-
-    loadData();
+    fetchComplaints();
+    fetchTechnicians();
   }, []);
 
-  // =====================================================
-  // ASSIGN TECHNICIAN
-  // =====================================================
+  // --------------------------------------------------
+  // SPECIALIZATION MAPPING
+  // --------------------------------------------------
 
-  const handleAssignTechnician = async (
-    complaintId
-  ) => {
+  const specializationMap = {
+    Computer: "Computer Technician",
+    Fan: "Electrician",
+    Light: "Electrician",
+    AC: "AC Technician",
+    Door: "Carpenter",
+    Furniture: "Carpenter",
+  };
+
+  // --------------------------------------------------
+  // QUALIFIED TECHNICIANS
+  // --------------------------------------------------
+
+  const getTechniciansForComplaint = (category) => {
+    const requiredSpecialization =
+      specializationMap[category];
+
+    if (!requiredSpecialization) {
+      return technicians;
+    }
+
+    return technicians.filter(
+      (technician) =>
+        technician.specialization ===
+        requiredSpecialization
+    );
+  };
+
+  // --------------------------------------------------
+  // ASSIGN TECHNICIAN
+  // --------------------------------------------------
+
+  const handleAssignTechnician = async (complaintId) => {
     const technicianId =
       selectedTechnician[complaintId];
 
@@ -134,17 +381,10 @@ function SupervisorComplaints() {
       setMessage("");
       setErrorMessage("");
 
-      const token = localStorage.getItem("token");
-
       const response = await api.patch(
         `/supervisor/complaints/${complaintId}/assign-technician`,
         {
           technicianId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
 
@@ -153,117 +393,53 @@ function SupervisorComplaints() {
           "Technician assigned successfully."
       );
 
-      setSelectedTechnician((previous) => ({
-        ...previous,
-        [complaintId]: "",
-      }));
-
       await fetchComplaints();
 
-      setTimeout(() => {
-        setMessage("");
-      }, 3000);
+      setSelectedTechnician((previous) => {
+        const updated = { ...previous };
+
+        delete updated[complaintId];
+
+        return updated;
+      });
     } catch (error) {
       console.error(
         "ASSIGN TECHNICIAN ERROR:",
-        error.response?.data || error
+        error
       );
 
       setErrorMessage(
         error.response?.data?.message ||
           "Failed to assign technician."
       );
-
-      setTimeout(() => {
-        setErrorMessage("");
-      }, 3500);
     } finally {
       setAssigningId(null);
     }
   };
 
-  // =====================================================
-  // HELPERS
-  // =====================================================
-
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "Pending":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-
-      case "Assigned":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-
-      case "In Progress":
-        return "bg-violet-50 text-violet-700 border-violet-200";
-
-      case "Resolved":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-
-      default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
-    }
-  };
-
-  const getPriorityStyle = (priority) => {
-    switch (priority) {
-      case "High":
-        return "bg-red-50 text-red-700 border-red-200";
-
-      case "Medium":
-        return "bg-orange-50 text-orange-700 border-orange-200";
-
-      case "Low":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-
-      default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
-    }
-  };
-
-  const formatDate = (date) => {
-    if (!date) return "Not available";
-
-    return new Date(date).toLocaleString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
-  };
-
-  const getTechniciansForBlock = (block) => {
-    return technicians.filter((technician) =>
-      technician.assignedBlocks?.includes(block)
-    );
-  };
-
-  // =====================================================
-  // FILTERS
-  // =====================================================
+  // --------------------------------------------------
+  // FILTER COMPLAINTS
+  // --------------------------------------------------
 
   const filteredComplaints = useMemo(() => {
-    const search = searchTerm
-      .trim()
-      .toLowerCase();
+    const search =
+      searchTerm.trim().toLowerCase();
 
     return complaints.filter((complaint) => {
       const matchesSearch =
         !search ||
-        complaint.category
-          ?.toLowerCase()
-          .includes(search) ||
         complaint.block
           ?.toLowerCase()
           .includes(search) ||
-        complaint.room
-          ?.toLowerCase()
-          .includes(search) ||
         complaint.floor
+          ?.toString()
+          .toLowerCase()
+          .includes(search) ||
+        complaint.room
+          ?.toString()
+          .toLowerCase()
+          .includes(search) ||
+        complaint.category
           ?.toLowerCase()
           .includes(search) ||
         complaint.description
@@ -294,386 +470,624 @@ function SupervisorComplaints() {
     priorityFilter,
   ]);
 
-  // =====================================================
-  // STATS
-  // =====================================================
+  // --------------------------------------------------
+  // SINGLE SELECTED COMPLAINT
+  // --------------------------------------------------
 
-  const totalComplaints =
-    complaints.length;
+  const visibleComplaints = useMemo(() => {
+    if (!selectedComplaintId) {
+      return filteredComplaints;
+    }
 
-  const pendingAssignment =
+    return complaints.filter(
+      (complaint) =>
+        complaint._id === selectedComplaintId
+    );
+  }, [
+    complaints,
+    filteredComplaints,
+    selectedComplaintId,
+  ]);
+
+  // --------------------------------------------------
+  // STATISTICS
+  // --------------------------------------------------
+
+  const totalComplaints = complaints.length;
+
+  const pendingComplaints = complaints.filter(
+    (complaint) =>
+      complaint.status === "Pending" ||
+      !complaint.technician
+  ).length;
+
+  const activeComplaints = complaints.filter(
+    (complaint) =>
+      complaint.status === "Assigned" ||
+      complaint.status === "In Progress"
+  ).length;
+
+  const resolvedComplaints = complaints.filter(
+    (complaint) =>
+      complaint.status === "Resolved"
+  ).length;
+
+  const highPriorityComplaints =
     complaints.filter(
       (complaint) =>
-        !complaint.technician &&
-        complaint.status !== "Resolved"
+        complaint.priority === "High"
     ).length;
 
-  const activeComplaints =
-    complaints.filter(
-      (complaint) =>
-        complaint.status === "Assigned" ||
-        complaint.status === "In Progress"
-    ).length;
+  // --------------------------------------------------
+  // STYLES
+  // --------------------------------------------------
 
-  const resolvedComplaints =
-    complaints.filter(
-      (complaint) =>
-        complaint.status === "Resolved"
-    ).length;
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Pending":
+        return "border-amber-200 bg-amber-50 text-amber-700";
+
+      case "Assigned":
+        return "border-blue-200 bg-blue-50 text-blue-700";
+
+      case "In Progress":
+        return "border-violet-200 bg-violet-50 text-violet-700";
+
+      case "Resolved":
+        return "border-emerald-200 bg-emerald-50 text-emerald-700";
+
+      default:
+        return "border-slate-200 bg-slate-50 text-slate-700";
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case "High":
+        return "border-red-200 bg-red-50 text-red-700";
+
+      case "Medium":
+        return "border-orange-200 bg-orange-50 text-orange-700";
+
+      case "Low":
+        return "border-green-200 bg-green-50 text-green-700";
+
+      default:
+        return "border-slate-200 bg-slate-50 text-slate-700";
+    }
+  };
+
+  // --------------------------------------------------
+  // DATE FORMAT
+  // --------------------------------------------------
+
+  const formatDateTime = (date) => {
+    if (!date) {
+      return "Not available";
+    }
+
+    return new Date(date).toLocaleString(
+      "en-IN",
+      {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }
+    );
+  };
+
+  // --------------------------------------------------
+  // FILTER COUNT
+  // --------------------------------------------------
+
+  const getFilterCount = (filter) => {
+    if (filter === "All") {
+      return complaints.length;
+    }
+
+    if (filter === "Pending") {
+      return pendingComplaints;
+    }
+
+    if (filter === "Assigned") {
+      return complaints.filter(
+        (complaint) =>
+          complaint.status === "Assigned"
+      ).length;
+    }
+
+    if (filter === "In Progress") {
+      return complaints.filter(
+        (complaint) =>
+          complaint.status === "In Progress"
+      ).length;
+    }
+
+    if (filter === "Resolved") {
+      return resolvedComplaints;
+    }
+
+    return 0;
+  };
+
+  // --------------------------------------------------
+  // BACK TO ALL COMPLAINTS
+  // --------------------------------------------------
+
+  const handleBackToAll = () => {
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
+
+    window.location.reload();
+  };
+
+  // --------------------------------------------------
+  // TOGGLE READ MORE
+  // --------------------------------------------------
+
+  const toggleDescription = (complaintId) => {
+    setExpandedComplaintId((previous) =>
+      previous === complaintId
+        ? null
+        : complaintId
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-[#f6f8fc]">
+    <div className="min-h-screen bg-slate-50">
       <SupervisorSidebar
         onLogout={() => setShowLogout(true)}
       />
 
-      <div className="lg:ml-64">
-        {/* =================================================
-            HEADER
-        ================================================= */}
+      <main className="min-h-screen lg:ml-72">
+        <div className="p-4 sm:p-6 lg:p-8">
 
-        <header className="border-b border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-lg bg-indigo-50 px-2.5 py-1 text-[10px] font-black tracking-wider text-indigo-600">
-                  CAMPUSFIX
-                </span>
+          {/* ==================================================
+              HEADER
+          ================================================== */}
 
-                <span className="text-xs font-bold text-slate-400">
-                  Supervisor Portal
-                </span>
+          <section className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 p-6 text-white shadow-lg sm:p-8">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+
+              <div>
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold">
+                  <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                  Supervisor Operations
+                </div>
+
+                <h1 className="text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl">
+                  Complaint Management
+                </h1>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-indigo-100">
+                  Review maintenance complaints,
+                  inspect reported issues and assign
+                  the appropriate technician.
+                </p>
               </div>
 
-              <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">
-                Complaint Management
-              </h1>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Review, manage and assign maintenance complaints.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-indigo-500">
-                  Your Blocks
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-200">
+                  Supervisor Access
                 </p>
 
-                <p className="mt-1 text-sm font-black text-indigo-900">
+                <p className="mt-1 text-lg font-black">
                   {assignedBlocks.length
                     ? assignedBlocks.join(", ")
-                    : "No block assigned"}
-                </p>
-              </div>
-
-              <div className="hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:block">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  Technicians
+                    : "All Campus"}
                 </p>
 
-                <p className="mt-1 text-sm font-black text-slate-800">
-                  {technicians.length}
+                <p className="mt-1 text-xs text-indigo-200">
+                  {totalComplaints} total complaints
                 </p>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="p-4 sm:p-6 lg:p-7">
-          {/* =================================================
-              SUCCESS / ERROR
-          ================================================= */}
-
-          {message && (
-            <div className="mb-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-sm">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                ✓
-              </div>
-
-              <p className="text-sm font-black text-emerald-700">
-                {message}
-              </p>
-            </div>
-          )}
-
-          {errorMessage && (
-            <div className="mb-5 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 shadow-sm">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 text-red-700">
-                !
-              </div>
-
-              <p className="text-sm font-black text-red-700">
-                {errorMessage}
-              </p>
-            </div>
-          )}
-
-          {/* =================================================
-              STATS
-          ================================================= */}
-
-          <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-                    Total
-                  </p>
-
-                  <p className="mt-2 text-3xl font-black text-slate-800">
-                    {totalComplaints}
-                  </p>
-
-                  <p className="mt-1 text-xs font-semibold text-slate-400">
-                    Assigned complaints
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-2xl">
-                  📋
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-amber-500">
-                    Pending
-                  </p>
-
-                  <p className="mt-2 text-3xl font-black text-amber-700">
-                    {pendingAssignment}
-                  </p>
-
-                  <p className="mt-1 text-xs font-semibold text-amber-500">
-                    Need technician
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-2xl">
-                  ⏳
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-blue-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-blue-500">
-                    Active
-                  </p>
-
-                  <p className="mt-2 text-3xl font-black text-blue-700">
-                    {activeComplaints}
-                  </p>
-
-                  <p className="mt-1 text-xs font-semibold text-blue-500">
-                    Work in progress
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
-                  🔧
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-emerald-500">
-                    Resolved
-                  </p>
-
-                  <p className="mt-2 text-3xl font-black text-emerald-700">
-                    {resolvedComplaints}
-                  </p>
-
-                  <p className="mt-1 text-xs font-semibold text-emerald-500">
-                    Completed work
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">
-                  ✓
-                </div>
               </div>
             </div>
           </section>
 
-          {/* =================================================
-              SEARCH / FILTER
-          ================================================= */}
+          {/* ==================================================
+              SINGLE COMPLAINT MODE
+          ================================================== */}
 
-          {!loading && complaints.length > 0 && (
-            <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="grid gap-4 lg:grid-cols-[1fr_180px_180px]">
-                <div>
-                  <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    Search
-                  </label>
+          {selectedComplaintId && (
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 sm:flex-row sm:items-center sm:justify-between">
 
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">
-                      🔎
-                    </span>
+              <div>
+                <p className="text-sm font-black text-indigo-900">
+                  Viewing Selected Complaint
+                </p>
 
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) =>
-                        setSearchTerm(e.target.value)
-                      }
-                      placeholder="Search block, room, category, technician..."
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-50"
-                    />
+                <p className="mt-1 text-xs text-indigo-700">
+                  You opened this complaint from the
+                  dashboard or notification.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleBackToAll}
+                className="w-fit rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-indigo-700"
+              >
+                ← Back to All Complaints
+              </button>
+            </div>
+          )}
+
+          {/* ==================================================
+              SUCCESS MESSAGE
+          ================================================== */}
+
+          {message && (
+            <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+              <span className="text-lg">✓</span>
+
+              <span>{message}</span>
+            </div>
+          )}
+
+          {/* ==================================================
+              ERROR MESSAGE
+          ================================================== */}
+
+          {errorMessage && (
+            <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+
+              <span className="text-lg">!</span>
+
+              <span>{errorMessage}</span>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setErrorMessage("")
+                }
+                className="ml-auto text-red-400 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* ==================================================
+              STATISTICS
+          ================================================== */}
+
+          {!selectedComplaintId && (
+            <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      Total
+                    </p>
+
+                    <p className="mt-2 text-3xl font-black text-slate-900">
+                      {totalComplaints}
+                    </p>
                   </div>
-                </div>
 
-                <div>
-                  <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    Status
-                  </label>
-
-                  <select
-                    value={statusFilter}
-                    onChange={(e) =>
-                      setStatusFilter(e.target.value)
-                    }
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50"
-                  >
-                    <option value="All">
-                      All Status
-                    </option>
-                    <option value="Pending">
-                      Pending
-                    </option>
-                    <option value="Assigned">
-                      Assigned
-                    </option>
-                    <option value="In Progress">
-                      In Progress
-                    </option>
-                    <option value="Resolved">
-                      Resolved
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    Priority
-                  </label>
-
-                  <select
-                    value={priorityFilter}
-                    onChange={(e) =>
-                      setPriorityFilter(e.target.value)
-                    }
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50"
-                  >
-                    <option value="All">
-                      All Priority
-                    </option>
-                    <option value="High">
-                      High
-                    </option>
-                    <option value="Medium">
-                      Medium
-                    </option>
-                    <option value="Low">
-                      Low
-                    </option>
-                  </select>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-xl">
+                    📋
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-400">
-                  Showing{" "}
-                  <span className="text-slate-700">
-                    {filteredComplaints.length}
-                  </span>{" "}
-                  complaints
-                </p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      Pending
+                    </p>
 
-                {(searchTerm ||
-                  statusFilter !== "All" ||
-                  priorityFilter !== "All") && (
+                    <p className="mt-2 text-3xl font-black text-amber-600">
+                      {pendingComplaints}
+                    </p>
+                  </div>
+
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-xl">
+                    ⏳
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      Active
+                    </p>
+
+                    <p className="mt-2 text-3xl font-black text-violet-600">
+                      {activeComplaints}
+                    </p>
+                  </div>
+
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-xl">
+                    🔧
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      Resolved
+                    </p>
+
+                    <p className="mt-2 text-3xl font-black text-emerald-600">
+                      {resolvedComplaints}
+                    </p>
+                  </div>
+
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+                    ✓
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      High Priority
+                    </p>
+
+                    <p className="mt-2 text-3xl font-black text-red-600">
+                      {highPriorityComplaints}
+                    </p>
+                  </div>
+
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-xl">
+                    ⚠️
+                  </div>
+                </div>
+              </div>
+
+            </section>
+          )}
+
+          {/* ==================================================
+              SEARCH / FILTERS
+          ================================================== */}
+
+          {!selectedComplaintId && (
+            <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+
+              <div className="mb-4">
+                <h2 className="text-base font-black text-slate-800">
+                  Find Complaints
+                </h2>
+
+                <p className="text-xs text-slate-500">
+                  Search and filter maintenance complaints.
+                </p>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr_1fr_auto]">
+
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    🔎
+                  </span>
+
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) =>
+                      setSearchTerm(e.target.value)
+                    }
+                    placeholder="Search block, floor, room, category..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-indigo-500 focus:bg-white"
+                  />
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value)
+                  }
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-indigo-500 focus:bg-white"
+                >
+                  <option value="All">
+                    All Status
+                  </option>
+
+                  <option value="Pending">
+                    Pending
+                  </option>
+
+                  <option value="Assigned">
+                    Assigned
+                  </option>
+
+                  <option value="In Progress">
+                    In Progress
+                  </option>
+
+                  <option value="Resolved">
+                    Resolved
+                  </option>
+                </select>
+
+                <select
+                  value={priorityFilter}
+                  onChange={(e) =>
+                    setPriorityFilter(e.target.value)
+                  }
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-indigo-500 focus:bg-white"
+                >
+                  <option value="All">
+                    All Priority
+                  </option>
+
+                  <option value="High">
+                    High
+                  </option>
+
+                  <option value="Medium">
+                    Medium
+                  </option>
+
+                  <option value="Low">
+                    Low
+                  </option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("All");
+                    setPriorityFilter("All");
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                >
+                  Reset
+                </button>
+
+              </div>
+
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+
+                {[
+                  "All",
+                  "Pending",
+                  "Assigned",
+                  "In Progress",
+                  "Resolved",
+                ].map((filter) => (
                   <button
+                    key={filter}
                     type="button"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setStatusFilter("All");
-                      setPriorityFilter("All");
-                    }}
-                    className="text-xs font-black text-indigo-600 hover:text-indigo-800"
+                    onClick={() =>
+                      setStatusFilter(filter)
+                    }
+                    className={`whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-bold transition ${
+                      statusFilter === filter
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                    }`}
                   >
-                    Clear Filters
+                    {filter}
+
+                    <span
+                      className={`ml-1.5 rounded-md px-1.5 py-0.5 text-[10px] ${
+                        statusFilter === filter
+                          ? "bg-white/20"
+                          : "bg-slate-100"
+                      }`}
+                    >
+                      {getFilterCount(filter)}
+                    </span>
                   </button>
-                )}
+                ))}
+
               </div>
             </section>
           )}
 
-          {/* =================================================
-              LOADING
-          ================================================= */}
+          {/* ==================================================
+              TITLE
+          ================================================== */}
+
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+              <h2 className="text-xl font-black text-slate-900">
+                {selectedComplaintId
+                  ? "Complaint Details"
+                  : "Maintenance Complaints"}
+              </h2>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {selectedComplaintId
+                  ? "Detailed view of the selected maintenance complaint."
+                  : `Showing ${visibleComplaints.length} of ${totalComplaints} complaints`}
+              </p>
+            </div>
+
+            {!selectedComplaintId && (
+              <button
+                type="button"
+                onClick={() => {
+                  fetchComplaints();
+                  fetchTechnicians();
+                }}
+                className="w-fit rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+              >
+                ↻ Refresh
+              </button>
+            )}
+
+          </div>
+
+          {/* ==================================================
+              COMPLAINTS
+          ================================================== */}
 
           {loading ? (
             <div className="rounded-3xl border border-slate-200 bg-white p-14 text-center shadow-sm">
-              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
 
-              <h2 className="mt-5 text-lg font-black text-slate-800">
-                Loading Complaints
-              </h2>
+              <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-600" />
 
-              <p className="mt-1 text-sm text-slate-500">
-                Fetching complaints and technicians...
+              <p className="mt-5 text-sm font-bold text-slate-600">
+                Loading complaints...
               </p>
+
+              <p className="mt-1 text-xs text-slate-400">
+                Fetching current maintenance operations.
+              </p>
+
             </div>
-          ) : complaints.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-14 text-center shadow-sm">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-indigo-50 text-4xl">
+          ) : visibleComplaints.length === 0 ? (
+
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-14 text-center shadow-sm">
+
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-3xl">
                 📋
               </div>
 
-              <h2 className="mt-6 text-xl font-black text-slate-800">
-                No complaints assigned
+              <h2 className="mt-5 text-lg font-black text-slate-800">
+                {selectedComplaintId
+                  ? "Complaint not found"
+                  : "No complaints found"}
               </h2>
 
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Complaints assigned to you by Admin will appear
-                here.
+                {selectedComplaintId
+                  ? "This complaint may no longer be available or you may not have access to it."
+                  : "No complaints match your current search and filter settings."}
               </p>
-            </div>
-          ) : filteredComplaints.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-3xl">
-                🔎
-              </div>
 
-              <h2 className="mt-5 text-lg font-black text-slate-800">
-                No matching complaints
-              </h2>
+              {selectedComplaintId && (
+                <button
+                  type="button"
+                  onClick={handleBackToAll}
+                  className="mt-5 rounded-xl bg-indigo-600 px-5 py-3 text-xs font-black text-white hover:bg-indigo-700"
+                >
+                  ← Back to All Complaints
+                </button>
+              )}
 
-              <p className="mt-2 text-sm text-slate-500">
-                Try changing your search or filters.
-              </p>
             </div>
           ) : (
-            /* =================================================
-               SEPARATE COMPLAINT CARDS
-            ================================================= */
 
-            <div className="space-y-7">
-              {filteredComplaints.map(
-                (complaint, index) => {
-                  const blockTechnicians =
-                    getTechniciansForBlock(
-                      complaint.block
+            <div
+              className={
+                selectedComplaintId
+                  ? "mx-auto max-w-4xl"
+                  : "grid gap-5 xl:grid-cols-2"
+              }
+            >
+
+              {visibleComplaints.map(
+                (complaint) => {
+                  const categoryTechnicians =
+                    getTechniciansForComplaint(
+                      complaint.category
                     );
 
                   const isResolved =
@@ -687,378 +1101,355 @@ function SupervisorComplaints() {
                       complaint._id
                     ] || currentTechnician;
 
+                  const requiredSkill =
+                    specializationMap[
+                      complaint.category
+                    ] || "General Technician";
+
+                  const isExpanded =
+                    expandedComplaintId ===
+                    complaint._id;
+
+                  const description =
+                    complaint.description ||
+                    "No description provided.";
+
                   return (
                     <article
+                      id={`complaint-${complaint._id}`}
                       key={complaint._id}
-                      className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm transition duration-200 hover:border-indigo-200 hover:shadow-lg"
+                      className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-lg"
                     >
-                      {/* =================================================
-                          COMPLAINT TITLE BAR
-                      ================================================= */}
 
-                      <div className="border-b border-slate-200 bg-gradient-to-r from-indigo-50 via-white to-white px-5 py-5 sm:px-7">
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-sm font-black text-white shadow-sm">
-                              #{index + 1}
+                      {/* ==================================================
+                          CARD HEADER
+                      ================================================== */}
+
+                      <div className="border-b border-slate-100 bg-slate-50 p-4 sm:p-5">
+
+                        <div className="flex items-start justify-between gap-3">
+
+                          <div className="min-w-0">
+
+                            <div className="flex flex-wrap gap-2">
+
+                              <span className="rounded-lg bg-indigo-100 px-2.5 py-1 text-[11px] font-black text-indigo-700">
+                                {complaint.category}
+                              </span>
+
+                              <span
+                                className={`rounded-lg border px-2.5 py-1 text-[11px] font-black ${getPriorityColor(
+                                  complaint.priority
+                                )}`}
+                              >
+                                {complaint.priority ||
+                                  "Normal"}
+                              </span>
+
+                              <span
+                                className={`rounded-lg border px-2.5 py-1 text-[11px] font-black ${getStatusColor(
+                                  complaint.status
+                                )}`}
+                              >
+                                {complaint.status}
+                              </span>
+
                             </div>
 
-                            <div>
-                              <div className="flex flex-wrap gap-2">
-                                <span className="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs font-black text-indigo-700">
-                                  {complaint.category}
-                                </span>
+                            <h3 className="mt-3 text-base font-black text-slate-900">
+                              {complaint.category} Maintenance
+                            </h3>
 
-                                <span
-                                  className={`rounded-lg border px-3 py-1.5 text-xs font-black ${getPriorityStyle(
-                                    complaint.priority
-                                  )}`}
-                                >
-                                  {complaint.priority} Priority
-                                </span>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              ID:{" "}
+                              {complaint._id?.slice(-10)}
+                            </p>
 
-                                <span
-                                  className={`rounded-lg border px-3 py-1.5 text-xs font-black ${getStatusStyle(
-                                    complaint.status
-                                  )}`}
-                                >
-                                  {complaint.status}
-                                </span>
-                              </div>
-
-                              <h2 className="mt-2 text-lg font-black text-slate-800">
-                                {complaint.category} Maintenance
-                                Complaint
-                              </h2>
-                            </div>
                           </div>
 
-                          {/* LOCATION */}
+                          <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-right">
 
-                          <div className="rounded-2xl border border-indigo-100 bg-white px-5 py-4 shadow-sm lg:min-w-[260px]">
-                            <p className="text-[10px] font-black uppercase tracking-wider text-indigo-500">
-                              Complaint Location
+                            <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">
+                              Location
                             </p>
 
-                            <p className="mt-1 text-base font-black text-slate-800">
-                              📍 {complaint.block}
-                            </p>
+                            <p className="mt-1 text-xs font-black text-slate-700">
+                              {complaint.block ||
+                                "N/A"}
 
-                            <p className="mt-1 text-xs font-bold text-slate-500">
                               {complaint.floor
-                                ? `Floor ${complaint.floor} • `
+                                ? ` • F${complaint.floor}`
                                 : ""}
-                              Room {complaint.room}
+
+                              {complaint.room
+                                ? ` • R${complaint.room}`
+                                : ""}
                             </p>
+
                           </div>
+
                         </div>
                       </div>
 
-                      {/* =================================================
-                          MAIN COMPLAINT CONTENT
-                      ================================================= */}
+                      {/* ==================================================
+                          CARD BODY
+                      ================================================== */}
 
-                      <div className="p-5 sm:p-7">
-                        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_310px]">
-                          {/* LEFT */}
+                      <div className="p-4 sm:p-5">
 
-                          <div className="min-w-0">
-                            {/* DESCRIPTION + PHOTO */}
+                        {/* IMAGE + DESCRIPTION */}
 
-                            <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px]">
-                              <div>
-                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                                  Issue Description
-                                </p>
+                        <div
+                          className={
+                            selectedComplaintId
+                              ? "flex flex-col gap-5"
+                              : "flex gap-4"
+                          }
+                        >
 
-                                <div className="mt-2 min-h-[130px] rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                                  <p className="text-sm leading-7 text-slate-700">
-                                    {complaint.description}
-                                  </p>
-                                </div>
-                              </div>
+                          {/* IMAGE */}
 
-                              {/* PHOTO */}
+                          <div
+                            className={
+                              selectedComplaintId
+                                ? "w-full"
+                                : "w-28 shrink-0 sm:w-32"
+                            }
+                          >
 
-                              <div>
-                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                                  Complaint Photo
-                                </p>
+                            {complaint.image ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewImage(
+                                    complaint.image
+                                  )
+                                }
+                                className={`group relative block w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 ${
+                                  selectedComplaintId
+                                    ? "h-64 sm:h-80"
+                                    : "h-28 sm:h-32"
+                                }`}
+                                title="View complaint photo"
+                              >
 
-                                {complaint.image ? (
-                                  <div className="mt-2 h-[130px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-                                    <img
-                                      src={
-                                        complaint.image
-                                      }
-                                      alt="Complaint evidence"
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="mt-2 flex h-[130px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-3xl">
-                                    🧰
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                                <img
+                                  src={complaint.image}
+                                  alt="Complaint"
+                                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                />
 
-                            {/* BASIC DETAILS */}
+                                <span className="absolute bottom-2 right-2 rounded-lg bg-black/60 px-2 py-1 text-[9px] font-bold text-white">
+                                  View Photo
+                                </span>
 
-                            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                  Block
-                                </p>
-
-                                <p className="mt-1 text-sm font-black text-slate-800">
-                                  {complaint.block}
-                                </p>
-                              </div>
-
-                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                  Floor
-                                </p>
-
-                                <p className="mt-1 text-sm font-black text-slate-800">
-                                  {complaint.floor ||
-                                    "Not specified"}
-                                </p>
-                              </div>
-
-                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                  Room
-                                </p>
-
-                                <p className="mt-1 text-sm font-black text-slate-800">
-                                  {complaint.room}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* CURRENT TECHNICIAN */}
-
-                            {complaint.technician && (
-                              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-                                      🧑‍🔧
-                                    </div>
-
-                                    <div>
-                                      <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">
-                                        Assigned Technician
-                                      </p>
-
-                                      <p className="mt-1 font-black text-emerald-900">
-                                        {
-                                          complaint
-                                            .technician
-                                            .name
-                                        }
-                                      </p>
-
-                                      <p className="text-xs font-semibold text-emerald-700">
-                                        {
-                                          complaint
-                                            .technician
-                                            .specialization
-                                        }
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <span className="w-fit rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700">
-                                    Technician Assigned ✓
-                                  </span>
-                                </div>
+                              </button>
+                            ) : (
+                              <div
+                                className={`flex w-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-3xl ${
+                                  selectedComplaintId
+                                    ? "h-64 sm:h-80"
+                                    : "h-28 sm:h-32"
+                                }`}
+                              >
+                                🧰
                               </div>
                             )}
 
-                            {/* TIMELINE */}
+                            <p className="mt-2 text-center text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                              Complaint Photo
+                            </p>
 
-                            <div className="mt-6">
-                              <div className="mb-3 flex items-center justify-between">
-                                <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                                  Activity Timeline
-                                </p>
-
-                                <span className="text-[10px] font-bold text-slate-400">
-                                  Complaint History
-                                </span>
-                              </div>
-
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                  <div className="flex gap-3">
-                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-sm">
-                                      📝
-                                    </span>
-
-                                    <div>
-                                      <p className="text-xs font-black text-slate-700">
-                                        Complaint Created
-                                      </p>
-
-                                      <p className="mt-1 text-[11px] text-slate-500">
-                                        {formatDate(
-                                          complaint.createdAt
-                                        )}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                  <div className="flex gap-3">
-                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm">
-                                      👨‍💼
-                                    </span>
-
-                                    <div>
-                                      <p className="text-xs font-black text-slate-700">
-                                        Assigned by Admin
-                                      </p>
-
-                                      <p className="mt-1 text-[11px] text-slate-500">
-                                        {formatDate(
-                                          complaint.assignedAt
-                                        )}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                  <div className="flex gap-3">
-                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-sm">
-                                      🔧
-                                    </span>
-
-                                    <div>
-                                      <p className="text-xs font-black text-slate-700">
-                                        Technician Assigned
-                                      </p>
-
-                                      <p className="mt-1 text-[11px] text-slate-500">
-                                        {formatDate(
-                                          complaint.technicianAssignedAt
-                                        )}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                  <div className="flex gap-3">
-                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-sm">
-                                      ✓
-                                    </span>
-
-                                    <div>
-                                      <p className="text-xs font-black text-slate-700">
-                                        Resolved
-                                      </p>
-
-                                      <p className="mt-1 text-[11px] text-slate-500">
-                                        {formatDate(
-                                          complaint.resolvedAt
-                                        )}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
                           </div>
 
-                          {/* =================================================
-                              RIGHT ASSIGNMENT PANEL
-                          ================================================= */}
+                          {/* DESCRIPTION */}
 
-                          <aside className="h-fit rounded-3xl border border-indigo-100 bg-gradient-to-b from-indigo-50 to-white p-5">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-lg text-white">
-                                👨‍🔧
-                              </div>
+                          <div className="min-w-0 flex-1">
 
-                              <div>
-                                <h3 className="text-sm font-black text-slate-800">
-                                  Assign Technician
-                                </h3>
+                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                              Issue Description
+                            </p>
 
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {complaint.block} technicians
-                                </p>
-                              </div>
-                            </div>
+                            <p
+                              className={`mt-2 text-sm leading-6 text-slate-700 ${
+                                isExpanded
+                                  ? ""
+                                  : "line-clamp-4"
+                              }`}
+                            >
+                              {description}
+                            </p>
 
-                            {/* AVAILABLE */}
+                            {description.length > 180 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleDescription(
+                                    complaint._id
+                                  )
+                                }
+                                className="mt-2 text-xs font-black text-indigo-600 hover:text-indigo-800 hover:underline"
+                              >
+                                {isExpanded
+                                  ? "Read Less ↑"
+                                  : "Read More →"}
+                              </button>
+                            )}
 
-                            <div className="mt-5 rounded-2xl border border-indigo-100 bg-white p-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                  Available
-                                </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
 
-                                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-black text-indigo-600">
-                                  {
-                                    blockTechnicians.length
-                                  }
+                              <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                                📍{" "}
+                                {complaint.block ||
+                                  "Block N/A"}
+                              </span>
+
+                              {complaint.floor && (
+                                <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                                  🏢 Floor{" "}
+                                  {complaint.floor}
                                 </span>
-                              </div>
-
-                              {blockTechnicians.length >
-                              0 ? (
-                                <div className="mt-3 space-y-2">
-                                  {blockTechnicians.map(
-                                    (technician) => (
-                                      <div
-                                        key={
-                                          technician._id
-                                        }
-                                        className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3"
-                                      >
-                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-base shadow-sm">
-                                          🔧
-                                        </div>
-
-                                        <div className="min-w-0">
-                                          <p className="truncate text-xs font-black text-slate-800">
-                                            {
-                                              technician.name
-                                            }
-                                          </p>
-
-                                          <p className="mt-0.5 truncate text-[10px] font-semibold text-slate-500">
-                                            {
-                                              technician.specialization
-                                            }
-                                          </p>
-                                        </div>
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="mt-3 rounded-xl bg-red-50 p-3">
-                                  <p className="text-xs font-bold leading-5 text-red-600">
-                                    No technician is assigned
-                                    to this block.
-                                  </p>
-                                </div>
                               )}
+
+                              {complaint.room && (
+                                <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                                  🚪 Room{" "}
+                                  {complaint.room}
+                                </span>
+                              )}
+
                             </div>
 
-                            {/* SELECT */}
+                          </div>
+                        </div>
 
-                            <div className="mt-5">
-                              <label className="mb-2 block text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                Select Technician
-                              </label>
+                        {/* COMPLETION PHOTO */}
+
+                        {complaint.completionImage && (
+                          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+
+                            <div className="flex items-center justify-between gap-3">
+
+                              <p className="text-[10px] font-black uppercase tracking-wide text-emerald-700">
+                                ✓ Completion Photo
+                              </p>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewImage(
+                                    complaint.completionImage
+                                  )
+                                }
+                                className="text-[10px] font-black text-emerald-700 hover:underline"
+                              >
+                                View Photo
+                              </button>
+
+                            </div>
+
+                          </div>
+                        )}
+
+                        {/* TECHNICIAN ASSIGNMENT */}
+
+                        <div className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+
+                          <div className="flex items-start justify-between gap-3">
+
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-wide text-indigo-500">
+                                Technician Assignment
+                              </p>
+
+                              <h4 className="mt-1 text-sm font-black text-slate-800">
+                                {complaint.technician
+                                  ? "Current Technician"
+                                  : "Needs Technician"}
+                              </h4>
+                            </div>
+
+                            <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm">
+
+                              <p className="text-sm font-black text-indigo-700">
+                                {
+                                  categoryTechnicians.length
+                                }
+                              </p>
+
+                              <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">
+                                Qualified
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                          {complaint.technician && (
+                            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-white p-3">
+
+                              <div className="flex min-w-0 items-center gap-3">
+
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-sm">
+                                  🛠️
+                                </div>
+
+                                <div className="min-w-0">
+
+                                  <p className="truncate text-xs font-black text-slate-800">
+                                    {
+                                      complaint
+                                        .technician
+                                        .name
+                                    }
+                                  </p>
+
+                                  <p className="mt-0.5 truncate text-[10px] font-semibold text-slate-500">
+                                    {
+                                      complaint
+                                        .technician
+                                        .specialization
+                                    }
+                                  </p>
+
+                                </div>
+
+                              </div>
+
+                              <span className="shrink-0 rounded-lg bg-blue-50 px-2 py-1 text-[9px] font-black text-blue-700">
+                                Assigned
+                              </span>
+
+                            </div>
+                          )}
+
+                          {isResolved ? (
+                            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+
+                              <p className="text-xs font-black text-emerald-700">
+                                ✓ Complaint Resolved
+                              </p>
+
+                              <p className="mt-1 text-[10px] leading-4 text-emerald-600">
+                                This complaint is completed and cannot be reassigned.
+                              </p>
+
+                            </div>
+                          ) : (
+                            <div className="mt-4">
+
+                              <div className="mb-2 flex items-center justify-between">
+
+                                <label className="text-xs font-black text-slate-700">
+                                  Select Technician
+                                </label>
+
+                                <span className="text-[10px] font-bold text-indigo-600">
+                                  Required:{" "}
+                                  {requiredSkill}
+                                </span>
+
+                              </div>
 
                               <select
                                 value={selectedValue}
@@ -1071,18 +1462,14 @@ function SupervisorComplaints() {
                                     })
                                   )
                                 }
-                                disabled={
-                                  isResolved ||
-                                  assigningId ===
-                                    complaint._id
-                                }
-                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-bold text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                               >
+
                                 <option value="">
-                                  Select technician
+                                  Select qualified technician
                                 </option>
 
-                                {blockTechnicians.map(
+                                {categoryTechnicians.map(
                                   (technician) => (
                                     <option
                                       key={
@@ -1099,88 +1486,205 @@ function SupervisorComplaints() {
                                     </option>
                                   )
                                 )}
+
                               </select>
+
+                              {categoryTechnicians.length ===
+                                0 && (
+                                <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+
+                                  <p className="text-[10px] font-bold leading-4 text-amber-700">
+                                    No qualified technician is currently available for this complaint category.
+                                  </p>
+
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleAssignTechnician(
+                                    complaint._id
+                                  )
+                                }
+                                disabled={
+                                  !selectedValue ||
+                                  assigningId ===
+                                    complaint._id ||
+                                  categoryTechnicians.length ===
+                                    0
+                                }
+                                className="mt-3 w-full rounded-xl bg-indigo-600 px-4 py-3 text-xs font-black text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                              >
+                                {assigningId ===
+                                complaint._id
+                                  ? "Assigning Technician..."
+                                  : complaint.technician
+                                  ? "Reassign Technician"
+                                  : "Assign Technician"}
+                              </button>
+
                             </div>
+                          )}
 
-                            {/* BUTTON */}
+                        </div>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleAssignTechnician(
-                                  complaint._id
-                                )
-                              }
-                              disabled={
-                                isResolved ||
-                                assigningId ===
-                                  complaint._id ||
-                                blockTechnicians.length ===
-                                  0 ||
-                                !selectedValue
-                              }
-                              className="mt-3 w-full rounded-xl bg-indigo-600 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {assigningId ===
-                              complaint._id
-                                ? "Assigning..."
-                                : isResolved
-                                ? "✓ Resolved"
-                                : complaint.technician
-                                ? "↻ Reassign Technician"
-                                : "Assign Technician →"}
-                            </button>
+                        {/* TIMELINE */}
 
-                            {/* RULE */}
+                        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
 
-                            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-                              <div className="flex gap-2">
-                                <span className="text-sm">
-                                  🔒
-                                </span>
+                          <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                            Complaint Timeline
+                          </p>
 
-                                <p className="text-[10px] font-semibold leading-5 text-slate-500">
-                                  Only technicians assigned to{" "}
-                                  <span className="font-black text-slate-700">
-                                    {complaint.block}
-                                  </span>{" "}
-                                  can be selected.
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
+                            <div className="flex gap-2">
+
+                              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
+
+                              <div>
+                                <p className="text-[10px] font-black text-slate-700">
+                                  Created
+                                </p>
+
+                                <p className="mt-0.5 text-[9px] text-slate-500">
+                                  {formatDateTime(
+                                    complaint.createdAt
+                                  )}
                                 </p>
                               </div>
+
                             </div>
-                          </aside>
+
+                            <div className="flex gap-2">
+
+                              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+
+                              <div>
+                                <p className="text-[10px] font-black text-slate-700">
+                                  Supervisor Assigned
+                                </p>
+
+                                <p className="mt-0.5 text-[9px] text-slate-500">
+                                  {formatDateTime(
+                                    complaint.assignedAt
+                                  )}
+                                </p>
+                              </div>
+
+                            </div>
+
+                            <div className="flex gap-2">
+
+                              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-violet-500" />
+
+                              <div>
+                                <p className="text-[10px] font-black text-slate-700">
+                                  Technician Assigned
+                                </p>
+
+                                <p className="mt-0.5 text-[9px] text-slate-500">
+                                  {formatDateTime(
+                                    complaint.technicianAssignedAt
+                                  )}
+                                </p>
+                              </div>
+
+                            </div>
+
+                            <div className="flex gap-2">
+
+                              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+
+                              <div>
+                                <p className="text-[10px] font-black text-slate-700">
+                                  Resolved
+                                </p>
+
+                                <p className="mt-0.5 text-[9px] text-slate-500">
+                                  {formatDateTime(
+                                    complaint.resolvedAt
+                                  )}
+                                </p>
+                              </div>
+
+                            </div>
+
+                          </div>
                         </div>
-                      </div>
 
-                      {/* =================================================
-                          FOOTER
-                      ================================================= */}
+                        {/* BACK BUTTON */}
 
-                      <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-                        <p className="text-[11px] font-semibold text-slate-400">
-                          Complaint ID:{" "}
-                          <span className="font-bold text-slate-600">
-                            {complaint._id}
-                          </span>
-                        </p>
+                        {selectedComplaintId && (
+                          <button
+                            type="button"
+                            onClick={handleBackToAll}
+                            className="mt-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                          >
+                            ← Back to All Complaints
+                          </button>
+                        )}
 
-                        <p className="text-[11px] font-semibold text-slate-400">
-                          Last updated through CampusFix workflow
-                        </p>
                       </div>
                     </article>
                   );
                 }
               )}
+
             </div>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
 
-      <LogoutModal
-        isOpen={showLogout}
-        onClose={() => setShowLogout(false)}
-      />
+      {/* ==================================================
+          IMAGE PREVIEW
+      ================================================== */}
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-5xl overflow-hidden rounded-2xl bg-white p-2 shadow-2xl"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+
+            <button
+              type="button"
+              onClick={() =>
+                setPreviewImage(null)
+              }
+              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-lg font-bold text-white transition hover:bg-black"
+              aria-label="Close image preview"
+            >
+              ✕
+            </button>
+
+            <img
+              src={previewImage}
+              alt="Complaint preview"
+              className="max-h-[85vh] max-w-full rounded-xl object-contain"
+            />
+
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================
+          LOGOUT MODAL
+      ================================================== */}
+
+      {showLogout && (
+        <LogoutModal
+          onClose={() =>
+            setShowLogout(false)
+          }
+        />
+      )}
     </div>
   );
 }

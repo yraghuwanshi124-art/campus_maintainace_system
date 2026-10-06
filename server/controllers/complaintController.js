@@ -13,7 +13,7 @@ const {
 
 // =====================================================
 // CREATE COMPLAINT
-// STUDENT → ADMIN NOTIFICATION
+// STUDENT → BLOCK ADMIN NOTIFICATION
 // =====================================================
 
 const createComplaint = async (req, res) => {
@@ -50,7 +50,10 @@ const createComplaint = async (req, res) => {
       });
     }
 
-    // Check duplicate active complaint
+    // =================================================
+    // CHECK DUPLICATE ACTIVE COMPLAINT
+    // =================================================
+
     const existingComplaint = await Complaint.findOne({
       block: block.trim(),
       room: room.trim(),
@@ -86,7 +89,10 @@ const createComplaint = async (req, res) => {
       });
     }
 
-    // Find Admin assigned to this block
+    // =================================================
+    // FIND ADMIN ASSIGNED TO THIS BLOCK
+    // =================================================
+
     const blockAdmin = await User.findOne({
       role: "admin",
       assignedBlocks: block.trim(),
@@ -98,7 +104,10 @@ const createComplaint = async (req, res) => {
       });
     }
 
-    // Create complaint
+    // =================================================
+    // CREATE COMPLAINT
+    // =================================================
+
     const complaint = await Complaint.create({
       user: req.user.userId,
       admin: blockAdmin._id,
@@ -113,10 +122,16 @@ const createComplaint = async (req, res) => {
       supporters: [],
     });
 
-    // Email notification
+    // =================================================
+    // EMAIL NOTIFICATION → ADMIN
+    // =================================================
+
     await sendComplaintNotification(complaint);
 
-    // In-app notification → Admin
+    // =================================================
+    // IN-APP NOTIFICATION → BLOCK ADMIN
+    // =================================================
+
     await createNotification({
       recipient: blockAdmin._id,
       title: "New Complaint Received",
@@ -289,7 +304,9 @@ const getAllComplaints = async (req, res) => {
     }
 
     const complaints = await Complaint.find({
-      block: { $in: admin.assignedBlocks || [] },
+      block: {
+        $in: admin.assignedBlocks || [],
+      },
     })
       .populate(
         "user",
@@ -301,7 +318,9 @@ const getAllComplaints = async (req, res) => {
         "supporters",
         "name email enrollmentNumber department semester classSection"
       )
-      .sort({ createdAt: -1 });
+      .sort({
+        createdAt: -1,
+      });
 
     res.json({
       complaints,
@@ -360,12 +379,13 @@ const updateComplaintStatus = async (req, res) => {
       });
     }
 
-    // Complaint resolved
+    // =================================================
+    // COMPLAINT RESOLVED
+    // =================================================
+
     if (status === "Resolved") {
-      // Existing email notification
       await sendComplaintResolvedEmail(complaint);
 
-      // In-app notification → Student
       await createNotification({
         recipient: complaint.user,
         title: "Complaint Resolved",
@@ -391,7 +411,18 @@ const updateComplaintStatus = async (req, res) => {
 
 // =====================================================
 // ASSIGN COMPLAINT
-// ADMIN → SUPERVISOR NOTIFICATION
+// ADMIN → COMMON SUPERVISOR
+//
+// IMPORTANT:
+// There is now ONE COMMON SUPERVISOR for the campus.
+// Any Admin can assign a complaint from their authorized
+// block to this common Supervisor.
+//
+// Example:
+// A Admin → Common Supervisor
+// B Admin → Common Supervisor
+// C Admin → Common Supervisor
+// V Admin → Common Supervisor
 // =====================================================
 
 const assignComplaint = async (req, res) => {
@@ -408,6 +439,10 @@ const assignComplaint = async (req, res) => {
       });
     }
 
+    // =================================================
+    // VERIFY ADMIN
+    // =================================================
+
     const admin = await User.findById(req.user.userId);
 
     if (!admin || admin.role !== "admin") {
@@ -415,6 +450,10 @@ const assignComplaint = async (req, res) => {
         message: "Access denied. Admin only.",
       });
     }
+
+    // =================================================
+    // ADMIN CAN ONLY MANAGE HIS/HER ASSIGNED BLOCKS
+    // =================================================
 
     const canManageBlock = (
       admin.assignedBlocks || []
@@ -427,24 +466,63 @@ const assignComplaint = async (req, res) => {
       });
     }
 
+    // =================================================
+    // RESOLVED COMPLAINT CANNOT BE REASSIGNED
+    // =================================================
+
     if (existingComplaint.status === "Resolved") {
       return res.status(400).json({
         message: "Resolved complaint cannot be reassigned",
       });
     }
 
-    const supervisor = await User.findOne({
-      _id: supervisorId,
-      role: "supervisor",
-      assignedBlocks: existingComplaint.block,
-    });
+    // =================================================
+    // FIND COMMON SUPERVISOR
+    //
+    // supervisorId is still accepted from frontend.
+    // But the selected supervisor must be a supervisor.
+    //
+    // Most importantly, we NO LONGER require:
+    // assignedBlocks: existingComplaint.block
+    //
+    // This allows one common Supervisor to receive
+    // complaints from every Admin/block.
+    // =================================================
+
+    let supervisor;
+
+    if (supervisorId) {
+      supervisor = await User.findOne({
+        _id: supervisorId,
+        role: "supervisor",
+      }).select(
+        "name email assignedBlocks"
+      );
+    } else {
+      // Fallback:
+      // If frontend does not send supervisorId,
+      // use the first available Supervisor.
+      supervisor = await User.findOne({
+        role: "supervisor",
+      })
+        .sort({
+          createdAt: 1,
+        })
+        .select(
+          "name email assignedBlocks"
+        );
+    }
 
     if (!supervisor) {
       return res.status(404).json({
         message:
-          "Supervisor not found or supervisor is not assigned to this block.",
+          "Common Supervisor not found. Please create a supervisor account first.",
       });
     }
+
+    // =================================================
+    // ASSIGN COMPLAINT TO COMMON SUPERVISOR
+    // =================================================
 
     const complaint = await Complaint.findByIdAndUpdate(
       req.params.id,
@@ -459,19 +537,51 @@ const assignComplaint = async (req, res) => {
       }
     );
 
-    // In-app notification → Supervisor
+    // =================================================
+    // NOTIFICATION → COMMON SUPERVISOR
+    // =================================================
+
     await createNotification({
       recipient: supervisor._id,
       title: "New Complaint Assigned",
       message:
-        `A complaint from ${complaint.block}, Room ${complaint.room} has been assigned to you.`,
+        `A ${complaint.category} complaint from ${complaint.block}, Room ${complaint.room} has been assigned to you.`,
       type: "supervisor_assigned",
       complaint: complaint._id,
     });
 
+    // =================================================
+    // RESPONSE
+    // =================================================
+
     res.json({
-      message: "Complaint assigned to supervisor successfully",
-      complaint,
+      message:
+        "Complaint assigned to common supervisor successfully",
+
+      complaint: {
+        _id: complaint._id,
+        block: complaint.block,
+        floor: complaint.floor,
+        room: complaint.room,
+        category: complaint.category,
+        description: complaint.description,
+        image: complaint.image,
+        priority: complaint.priority,
+        status: complaint.status,
+        supervisor: {
+          _id: supervisor._id,
+          name: supervisor.name,
+          email: supervisor.email,
+          assignedBlocks:
+            supervisor.assignedBlocks || [],
+        },
+        technician: null,
+        createdAt: complaint.createdAt,
+        assignedAt: complaint.assignedAt,
+        technicianAssignedAt:
+          complaint.technicianAssignedAt,
+        resolvedAt: complaint.resolvedAt,
+      },
     });
   } catch (error) {
     console.log("Assign complaint error:", error);
@@ -499,7 +609,9 @@ const deleteComplaint = async (req, res) => {
       });
     }
 
-    await Complaint.findByIdAndDelete(req.params.id);
+    await Complaint.findByIdAndDelete(
+      req.params.id
+    );
 
     res.json({
       message: "Complaint deleted successfully",
@@ -547,14 +659,16 @@ const uploadCompletionPhoto = async (req, res) => {
     }
 
     res.json({
-      message: "Completion photo uploaded successfully",
+      message:
+        "Completion photo uploaded successfully",
       complaint,
     });
   } catch (error) {
     console.log("Completion photo error:", error);
 
     res.status(500).json({
-      message: "Failed to upload completion photo",
+      message:
+        "Failed to upload completion photo",
       error: error.message,
     });
   }
@@ -594,11 +708,14 @@ const submitFeedback = async (req, res) => {
 
     if (complaint.feedbackRating) {
       return res.status(400).json({
-        message: "Feedback has already been submitted",
+        message:
+          "Feedback has already been submitted",
       });
     }
 
-    complaint.feedbackRating = Number(rating);
+    complaint.feedbackRating =
+      Number(rating);
+
     complaint.feedbackComment =
       comment?.trim() || "";
 

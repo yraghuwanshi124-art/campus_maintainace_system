@@ -63,9 +63,7 @@ function SupervisorSidebar({ onLogout }) {
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 z-40 h-screen overflow-hidden border-r border-indigo-100 bg-gradient-to-b from-indigo-50 via-white to-slate-50 shadow-xl transition-all duration-300 ${
-          isOpen
-            ? "w-64 translate-x-0"
-            : "w-64 -translate-x-full"
+          isOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full"
         } lg:translate-x-0 ${
           isOpen ? "lg:w-64" : "lg:w-20"
         }`}
@@ -78,9 +76,7 @@ function SupervisorSidebar({ onLogout }) {
         {/* Brand */}
         <div
           className={`relative flex h-24 items-center border-b border-indigo-100 bg-white/80 backdrop-blur-sm ${
-            isOpen
-              ? "justify-between px-5"
-              : "justify-center px-2"
+            isOpen ? "justify-between px-5" : "justify-center px-2"
           }`}
         >
           {isOpen ? (
@@ -122,11 +118,6 @@ function SupervisorSidebar({ onLogout }) {
                 key={item.path}
                 to={item.path}
                 end={item.path === "/supervisor/dashboard"}
-                onClick={() => {
-                  if (window.innerWidth < 1024) {
-                    setIsOpen(false);
-                  }
-                }}
                 title={!isOpen ? item.name : ""}
                 className={({ isActive }) =>
                   `group relative flex items-center rounded-2xl transition-all duration-200 ${
@@ -159,9 +150,7 @@ function SupervisorSidebar({ onLogout }) {
                     {isOpen && (
                       <span
                         className={`truncate text-[15px] tracking-wide ${
-                          isActive
-                            ? "font-extrabold"
-                            : "font-bold"
+                          isActive ? "font-extrabold" : "font-bold"
                         }`}
                       >
                         {item.name}

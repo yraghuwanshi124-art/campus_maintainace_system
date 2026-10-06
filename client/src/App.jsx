@@ -21,6 +21,7 @@ import AdminAIChatbot from "./pages/AdminAIChatbot";
 import SupervisorTechnicians from "./pages/SupervisorTechnicians";
 import SupervisorComplaints from "./pages/SupervisorComplaints";
 import Notifications from "./pages/Notifications";
+import SupervisorAIChatbot from "./pages/SupervisorAIChatbot";
 
 
 function App() {
@@ -198,27 +199,17 @@ function App() {
   }
 />
 
-        <Route
-          path="/supervisor/ai-chatbot"
-          element={
-            <ProtectedRoute allowedRole="supervisor">
-              <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-                <div className="rounded-3xl bg-white p-10 text-center shadow-xl">
-                  <div className="text-5xl">🤖</div>
-                  <h1 className="mt-5 text-3xl font-black text-slate-800">
-                    AI Chatbot
-                  </h1>
-                  <p className="mt-2 text-lg font-bold text-indigo-600">
-                    Coming Soon 🚀
-                  </p>
-                  <p className="mt-2 text-sm text-slate-500">
-                    CampusFix AI Assistant is under development.
-                  </p>
-                </div>
-              </div>
-            </ProtectedRoute>
-          }
-        />
+
+<Route
+  path="/supervisor/ai-chatbot"
+  element={
+    <ProtectedRoute allowedRole="supervisor">
+      <SupervisorAIChatbot />
+    </ProtectedRoute>
+  }
+/>
+
+
         <Route
           path="/supervisor/technicians"
           element={

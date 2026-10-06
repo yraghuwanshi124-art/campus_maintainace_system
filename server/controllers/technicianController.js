@@ -4,14 +4,14 @@ const bcrypt = require("bcryptjs");
 
 // =====================================================
 // GET TECHNICIANS
-// SUPERVISOR CAN ONLY SEE TECHNICIANS OF HIS BLOCKS
+// SUPERVISOR CAN SEE ALL COLLEGE TECHNICIANS
 // =====================================================
 
 const getTechnicians = async (req, res) => {
   try {
-    const supervisor = await User.findById(req.user.userId).select(
-      "role assignedBlocks"
-    );
+    const supervisor = await User.findById(
+      req.user.userId
+    ).select("role");
 
     if (!supervisor || supervisor.role !== "supervisor") {
       return res.status(403).json({
@@ -21,21 +21,21 @@ const getTechnicians = async (req, res) => {
 
     const technicians = await User.find({
       role: "technician",
-      assignedBlocks: {
-        $in: supervisor.assignedBlocks || [],
-      },
     }).select(
-      "name email specialization assignedBlocks"
+      "name email specialization"
     );
 
     return res.json({
       technicians,
     });
   } catch (error) {
-    console.error("Get technicians error:", error);
+    console.error(
+      "GET TECHNICIANS ERROR:",
+      error
+    );
 
     return res.status(500).json({
-      message: "Failed to fetch technicians",
+      message: "Failed to fetch technicians.",
       error: error.message,
     });
   }
@@ -43,7 +43,8 @@ const getTechnicians = async (req, res) => {
 
 // =====================================================
 // ADD NEW TECHNICIAN
-// SUPERVISOR CAN ADD TECHNICIAN ONLY TO HIS BLOCK
+// TECHNICIAN IS COMMON FOR THE WHOLE COLLEGE
+// NO FIXED BLOCK
 // =====================================================
 
 const createTechnician = async (req, res) => {
@@ -53,25 +54,23 @@ const createTechnician = async (req, res) => {
       email,
       password,
       specialization,
-      block,
     } = req.body;
 
     if (
       !name ||
       !email ||
       !password ||
-      !specialization ||
-      !block
+      !specialization
     ) {
       return res.status(400).json({
         message:
-          "Name, email, password, specialization and block are required.",
+          "Name, email, password and specialization are required.",
       });
     }
 
     const supervisor = await User.findById(
       req.user.userId
-    ).select("role assignedBlocks");
+    ).select("role");
 
     if (
       !supervisor ||
@@ -82,21 +81,6 @@ const createTechnician = async (req, res) => {
       });
     }
 
-    const normalizedBlock = block.trim();
-
-    // Supervisor can only create technician
-    // for his own assigned block.
-    if (
-      !supervisor.assignedBlocks?.includes(
-        normalizedBlock
-      )
-    ) {
-      return res.status(403).json({
-        message:
-          "You are not authorized to add technicians to this block.",
-      });
-    }
-
     const normalizedName = name.trim();
     const normalizedEmail =
       email.trim().toLowerCase();
@@ -104,7 +88,7 @@ const createTechnician = async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({
         message:
-          "Password must be at least 6 characters long",
+          "Password must be at least 6 characters long.",
       });
     }
 
@@ -115,7 +99,7 @@ const createTechnician = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         message:
-          "An account with this email already exists",
+          "An account with this email already exists.",
       });
     }
 
@@ -130,7 +114,7 @@ const createTechnician = async (req, res) => {
       password: hashedPassword,
       role: "technician",
       specialization,
-      assignedBlocks: [normalizedBlock],
+      assignedBlocks: [],
       classSection: "Staff",
       isVerified: true,
       registrationEmailVerified: true,
@@ -138,25 +122,24 @@ const createTechnician = async (req, res) => {
 
     return res.status(201).json({
       message:
-        "Technician created successfully",
+        "Technician created successfully.",
       technician: {
         _id: technician._id,
         name: technician.name,
         email: technician.email,
         specialization:
           technician.specialization,
-        assignedBlocks:
-          technician.assignedBlocks,
       },
     });
   } catch (error) {
     console.error(
-      "Create technician error:",
+      "CREATE TECHNICIAN ERROR:",
       error
     );
 
     return res.status(500).json({
-      message: "Failed to create technician",
+      message:
+        "Failed to create technician.",
       error: error.message,
     });
   }
@@ -164,15 +147,14 @@ const createTechnician = async (req, res) => {
 
 // =====================================================
 // DELETE TECHNICIAN
-// SUPERVISOR CAN DELETE ONLY TECHNICIANS
-// BELONGING TO HIS BLOCK
+// SUPERVISOR CAN DELETE ANY COLLEGE TECHNICIAN
 // =====================================================
 
 const deleteTechnician = async (req, res) => {
   try {
     const supervisor = await User.findById(
       req.user.userId
-    ).select("role assignedBlocks");
+    ).select("role");
 
     if (
       !supervisor ||
@@ -186,15 +168,11 @@ const deleteTechnician = async (req, res) => {
     const technician = await User.findOne({
       _id: req.params.id,
       role: "technician",
-      assignedBlocks: {
-        $in: supervisor.assignedBlocks || [],
-      },
     });
 
     if (!technician) {
       return res.status(404).json({
-        message:
-          "Technician not found or you are not authorized to delete this technician.",
+        message: "Technician not found.",
       });
     }
 
@@ -204,17 +182,17 @@ const deleteTechnician = async (req, res) => {
 
     return res.json({
       message:
-        "Technician deleted successfully",
+        "Technician deleted successfully.",
     });
   } catch (error) {
     console.error(
-      "Delete technician error:",
+      "DELETE TECHNICIAN ERROR:",
       error
     );
 
     return res.status(500).json({
       message:
-        "Failed to delete technician",
+        "Failed to delete technician.",
       error: error.message,
     });
   }

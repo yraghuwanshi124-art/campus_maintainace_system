@@ -1062,13 +1062,13 @@ function AdminDashboard() {
                                   </p>
                                 </div>
 
-                                <p className="mt-2 text-xs text-slate-500">
+                                <p className="mt-2 text-s text-slate-500">
                                   By{" "}
                                   {complaint.user?.name ||
                                     "Student"}
                                 </p>
 
-                                <p className="mt-1 text-xs font-semibold text-blue-600">
+                                <p className="mt-1 text-s font-semibold text-blue-600">
                                   🕒{" "}
                                   {formatDateTime(
                                     complaint.createdAt
@@ -1091,7 +1091,7 @@ function AdminDashboard() {
                                       </p>
                                     </div>
 
-                                    <p className="mt-2 text-xs text-slate-500">
+                                    <p className="mt-2 text-s text-slate-500">
                                       Assigned to{" "}
                                       <span className="font-bold text-orange-600">
                                         {getSupervisorName(
@@ -1100,7 +1100,7 @@ function AdminDashboard() {
                                       </span>
                                     </p>
 
-                                    <p className="mt-1 text-xs font-semibold text-orange-600">
+                                    <p className="mt-1 text-s font-semibold text-orange-600">
                                       🕒{" "}
                                       {formatDateTime(
                                         complaint.assignedAt
@@ -1145,11 +1145,11 @@ function AdminDashboard() {
                                       </p>
                                     </div>
 
-                                    <p className="mt-2 text-xs text-slate-500">
+                                    <p className="mt-2 text-s text-slate-500">
                                       Maintenance issue successfully resolved.
                                     </p>
 
-                                    <p className="mt-1 text-xs font-semibold text-emerald-600">
+                                    <p className="mt-1 text-s font-semibold text-emerald-600">
                                       🕒{" "}
                                       {formatDateTime(
                                         complaint.resolvedAt

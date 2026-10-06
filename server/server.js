@@ -17,6 +17,7 @@ const corsOptions = {
   origin: [
     "http://localhost:5173",
     "https://campus-maintainace-system.vercel.app",
+    "https://campus-maintainace-system-4dnzez8p6-yraghuwanshi124-art.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],

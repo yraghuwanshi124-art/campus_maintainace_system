@@ -111,6 +111,7 @@ const registerUser = async (req, res) => {
       enrollmentNumber,
       enrollmentYear,
       department,
+      branch,
       semester,
     } = req.body;
 
@@ -123,6 +124,7 @@ const registerUser = async (req, res) => {
       !classSection ||
       !enrollmentNumber ||
       !department ||
+      !branch ||
       !semester
     ) {
       return res.status(400).json({
@@ -145,6 +147,7 @@ const registerUser = async (req, res) => {
 
     const normalizedName = name.trim();
     const normalizedDepartment = department.trim();
+    const normalizedBranch = branch.trim();
     const normalizedClassSection = classSection.trim();
 
     // ================= COLLEGE EMAIL CHECK =================
@@ -193,9 +196,7 @@ const registerUser = async (req, res) => {
         { enrollmentNumber: normalizedEnrollment },
         { phoneNumber: normalizedPhone },
       ],
-    }).select(
-      "+emailOTP +emailOTPExpires"
-    );
+    }).select("+emailOTP +emailOTPExpires");
 
     // ================= EXISTING VERIFIED ACCOUNT =================
 
@@ -211,11 +212,13 @@ const registerUser = async (req, res) => {
 
     if (existingUser) {
       // Existing incomplete registration
+
       existingUser.name = normalizedName;
       existingUser.email = normalizedEmail;
       existingUser.phoneNumber = normalizedPhone;
       existingUser.enrollmentNumber = normalizedEnrollment;
       existingUser.department = normalizedDepartment;
+      existingUser.branch = normalizedBranch;
       existingUser.semester = numericSemester;
       existingUser.classSection = normalizedClassSection;
 
@@ -241,6 +244,7 @@ const registerUser = async (req, res) => {
         phoneNumber: normalizedPhone,
         enrollmentNumber: normalizedEnrollment,
         department: normalizedDepartment,
+        branch: normalizedBranch,
         semester: numericSemester,
         classSection: normalizedClassSection,
         role: "student",
@@ -307,6 +311,7 @@ const verifyOTP = async (req, res) => {
     }
 
     // Already completed account
+
     if (user.isVerified) {
       return res.status(400).json({
         message: "Account is already verified.",
@@ -630,6 +635,7 @@ const loginUser = async (req, res) => {
     }
 
     // Student must complete the entire registration.
+
     if (user.role === "student" && !user.isVerified) {
       return res.status(403).json({
         message:
@@ -673,7 +679,7 @@ const loginUser = async (req, res) => {
         classSection: user.classSection,
         role: user.role,
         assignedBlocks: user.assignedBlocks || [],
-      }
+      },
     });
   } catch (error) {
     console.error("LOGIN ERROR:", error);
@@ -696,3 +702,4 @@ module.exports = {
   forgotPassword,
   resetPassword,
 };
+

@@ -14,13 +14,33 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const app = express();
 
 const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "https://campus-maintainace-system.vercel.app",
-    "https://campus-maintainace-system-4dnzez8p6-yraghuwanshi124-art.vercel.app",
-  ],
+  origin: function (origin, callback) {
+    // Allow requests without an origin
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allow localhost
+    if (origin === "http://localhost:5173") {
+      return callback(null, true);
+    }
+
+    // Allow your main Vercel domain and all Vercel preview deployments
+    if (
+      origin === "https://campus-maintainace-system.vercel.app" ||
+      origin.endsWith(".vercel.app")
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
   allowedHeaders: ["Content-Type", "Authorization"],
+
+  credentials: true,
 };
 
 app.use(cors(corsOptions));

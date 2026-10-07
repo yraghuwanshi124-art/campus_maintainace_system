@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../services/api";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -46,27 +47,13 @@ function ResetPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/auth/reset-password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            otp,
-            newPassword,
-          }),
-        }
-      );
+const response = await api.post("/auth/reset-password", {
+  email,
+  otp,
+  newPassword,
+});
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Failed to reset password.");
-        return;
-      }
+const data = response.data;
 
       setMessage(
         "Password reset successfully. Redirecting to login..."

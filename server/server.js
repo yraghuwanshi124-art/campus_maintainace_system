@@ -27,6 +27,7 @@ const corsOptions = {
 
     // Allow your main Vercel domain and all Vercel preview deployments
     if (
+      
       origin === "https://campus-maintainace-system.vercel.app" ||
       origin.endsWith(".vercel.app")
     ) {

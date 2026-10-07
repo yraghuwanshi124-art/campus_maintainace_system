@@ -495,13 +495,20 @@ const forgotPassword = async (req, res) => {
 
     const otp = generateOTP();
 
-    user.resetPasswordOTP = otp;
+    // user.resetPasswordOTP = otp;
 
-    user.resetPasswordOTPExpires = new Date(
-      Date.now() + 10 * 60 * 1000
-    );
+    // user.resetPasswordOTPExpires = new Date(
+    //   Date.now() + 10 * 60 * 1000
+    // );
 
-    await user.save();
+    // await user.save();
+
+await user.updateOne({
+  resetPasswordOTP: otp,
+  resetPasswordOTPExpires: new Date(
+    Date.now() + 10 * 60 * 1000
+  ),
+});
 
     await sendPasswordResetOTP(normalizedEmail, otp);
 
@@ -519,6 +526,7 @@ const forgotPassword = async (req, res) => {
 };
 
 // ================= RESET PASSWORD =================
+
 
 const resetPassword = async (req, res) => {
   try {
@@ -590,12 +598,16 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    user.password = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      10
+    );
 
-    user.resetPasswordOTP = undefined;
-    user.resetPasswordOTPExpires = undefined;
-
-    await user.save();
+    await user.updateOne({
+      password: hashedPassword,
+      resetPasswordOTP: undefined,
+      resetPasswordOTPExpires: undefined,
+    });
 
     return res.status(200).json({
       message:
@@ -609,6 +621,7 @@ const resetPassword = async (req, res) => {
     });
   }
 };
+
 
 // ================= LOGIN =================
 

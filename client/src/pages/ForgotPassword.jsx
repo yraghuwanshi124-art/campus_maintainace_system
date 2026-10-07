@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../services/api";
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -18,26 +19,31 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        // "http://localhost:5000/api/auth/forgot-password",
-        "https://campus-maintainace-system-1.onrender.com/api/auth/forgot-password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-          }),
-        }
-      );
+      const response = await api.post("/auth/forgot-password", {
+        email: email.trim().toLowerCase(),
+      });
 
-      const data = await response.json();
+      const data = response.data;
+      // const response = await fetch(
+      //   // "http://localhost:5000/api/auth/forgot-password",
+      //   "https://campus-maintainace-system-1.onrender.com/api/auth/forgot-password",
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       email: email.trim().toLowerCase(),
+      //     }),
+      //   }
+      // );
 
-      if (!response.ok) {
-        setError(data.message || "Something went wrong.");
-        return;
-      }
+      // const data = await response.json();
+
+      // if (!response.ok) {
+      //   setError(data.message || "Something went wrong.");
+      //   return;
+      // }
 
       setMessage(data.message);
 

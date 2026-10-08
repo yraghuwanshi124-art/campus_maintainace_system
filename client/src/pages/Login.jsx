@@ -41,7 +41,9 @@ function Login() {
         navigate("/supervisor/dashboard");
       }
     } catch (error) {
+      console.log(error);
       setMessage(
+        
         error.response?.data?.message || "Login failed"
       );
     }
